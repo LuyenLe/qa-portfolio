@@ -1,0 +1,29 @@
+# dependencies
+node_modules
+
+# build output
+dist
+dist-ssr
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.local
+
+# local working sources / planning artifacts (not part of the deployed site).
+# Homepage/tool/checklist content is compiled into src/data/*; the design refs,
+# original tool sources, review screenshots and the source CV stay local.
+/data/
+/Design/
+/tools/
+/docs/
+/ARCHITECTURE_PLAN.md

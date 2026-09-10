@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P010 QA Data Cleaner v2.1</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172033;font-family:Arial,sans-serif}
+.wrap{max-width:1250px;margin:28px auto;padding:0 18px}h1{margin:0 0 5px}.sub{color:#667085;margin-bottom:20px}
+.card{background:#fff;border:1px solid #dce3ed;border-radius:14px;padding:20px;margin-bottom:16px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+input,select{padding:10px 12px;border:1px solid #cfd7e3;border-radius:9px;background:#fff;color:#172033}
+input[type=file]{width:min(100%,560px)}button{border:0;border-radius:9px;padding:11px 16px;font-weight:700;cursor:pointer;background:#172033;color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#e8eef6;color:#172033}.green{background:#087f5b}.blue{background:#1769aa}
+.status{padding:12px;border-radius:9px;background:#eef4ff;color:#2457a6;margin-top:12px;white-space:pre-line}.good{background:#ecfdf3;color:#067647}
+.warn{background:#fff4e5;color:#9a4d00}.bad{background:#fef3f2;color:#b42318}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:15px}.stat{border:1px solid #dce3ed;border-radius:10px;padding:13px}.stat b{display:block;font-size:23px}.stat span{font-size:11px;color:#667085}
+.file-list{margin-top:10px;max-height:180px;overflow:auto;border:1px solid #e4e7ec;border-radius:8px;padding:9px;background:#fafbfc;font-size:13px}
+label{font-weight:700;display:block;margin-bottom:7px}.small{font-size:12px;color:#667085;margin-top:4px}
+.progress{height:12px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-top:12px}.bar{height:100%;width:0;background:#1683c8;transition:width .15s}
+.table-wrap{max-height:500px;overflow:auto;border:1px solid #e4e7ec;border-radius:9px}table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px;border-bottom:1px solid #e4e7ec;text-align:left;vertical-align:top}th{background:#f8fafc;position:sticky;top:0}.log{background:#101828;color:#d0d5dd;padding:14px;border-radius:9px;white-space:pre-wrap;font:12px monospace;max-height:260px;overflow:auto}
+.kwgroup{border:1px solid #e4e7ec;border-radius:10px;padding:10px 12px;margin-top:10px;background:#fafbfc}
+.grouphead{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:8px;cursor:pointer}
+.grouphead input{accent-color:#1677ff;width:16px;height:16px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:#fff5d6;border:1px solid #ffd66b;border-radius:18px;padding:7px 11px;font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.chip input{accent-color:#1677ff}
+.chip-disabled{opacity:.4;cursor:not-allowed}
+.note{padding:12px;border-left:4px solid #2457a6;background:#f0f6ff;border-radius:7px;margin-top:12px;font-size:13px}
+.modeRow{display:flex;gap:20px;flex-wrap:wrap;margin-top:8px}
+.modeOpt{display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;border:1px solid #cfd7e3;border-radius:9px;padding:9px 14px}
+.modeOpt input{accent-color:#1677ff;width:16px;height:16px}
+.modeOpt.active{border-color:#1677ff;background:#f0f6ff}
+.badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;margin-left:10px;vertical-align:middle}
+.badge-whitelist{background:#ecfdf3;color:#067647}
+.badge-blacklist{background:#fef3f2;color:#b42318}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>P010 QA Data Cleaner v2.1</h1>
+<div class="sub">Lọc danh sách theo Whitelist (chỉ giữ dòng khớp keyword) hoặc Blacklist (loại dòng khớp keyword) — cùng 1 engine matching, đổi mode không mất file/keyword đã cấu hình.</div>
+
+<div class="card">
+<h2>1. Chọn dữ liệu</h2>
+<div class="actions">
+<div><label>Chọn một hoặc nhiều file Excel/CSV</label><input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm,.xlsb,.csv" multiple></div>
+<div><label>Chọn thư mục</label><input id="folderInput" type="file" webkitdirectory directory multiple></div>
+<button id="clearBtn" class="secondary">Xóa lựa chọn</button>
+</div>
+<div id="status" class="status">Chưa chọn dữ liệu.</div>
+<div id="fileList" class="file-list" style="display:none"></div>
+</div>
+
+<div class="card">
+<h2>2. Cấu hình lọc</h2>
+
+<label>Chế độ lọc</label>
+<div class="modeRow">
+ <label class="modeOpt active" id="modeWhitelistWrap"><input type="radio" name="filterMode" id="modeWhitelist" checked> <b>Whitelist</b> — Chỉ giữ dòng chứa keyword</label>
+ <label class="modeOpt" id="modeBlacklistWrap"><input type="radio" name="filterMode" id="modeBlacklist"> <b>Blacklist</b> — Loại dòng chứa keyword</label>
+</div>
+<div id="modeDesc" class="note">Whitelist: chỉ KEEP những dòng khớp ít nhất 1 keyword đang bật. Dòng không khớp keyword nào → REMOVED.</div>
+
+<div style="max-width:420px;margin-top:16px">
+<label>Cột dùng để nhận diện cấp học (ưu tiên TEN_TRUONG)</label>
+<select id="matchCol" style="width:100%" disabled><option value="">-- Scan để chọn cột --</option></select>
+</div>
+<div class="small" id="matchColHint"></div>
+<div class="small" style="margin-top:14px">Bật/tắt từng NHÓM hoặc từng KEYWORD con bên trong nhóm. Mỗi mode có bộ keyword mặc định riêng, độc lập — đổi mode sẽ hiển thị đúng bộ keyword của mode đó, không mất keyword đã thêm ở mode kia.</div>
+<div id="groupsContainer"></div>
+<div class="actions" style="margin-top:12px">
+<select id="kwGroupSelect"></select>
+<input id="newKeyword" placeholder="Thêm từ khóa mới, ví dụ: TH-CS">
+<button id="addKeyword" class="secondary">+ Thêm keyword</button>
+</div>
+</div>
+
+<div class="card">
+<h2>3. Scan &amp; Clean</h2>
+<div class="actions">
+<button id="scanBtn" class="blue" disabled>Scan cấu trúc</button>
+<button id="cleanBtn" class="green" disabled>Clean Data</button>
+<button id="zipBtn" class="secondary" disabled>Xuất ZIP (Kept + Removed)</button>
+<button id="reportBtn" class="secondary" disabled>Xuất Report Excel</button>
+</div>
+<div id="actionStatus" class="status">Chưa chạy.</div>
+<div class="progress"><div id="progressBar" class="bar"></div></div>
+</div>
+
+<div class="card">
+<h2>4. Kết quả tổng <span id="modeBadge" class="badge badge-whitelist">WHITELIST</span></h2>
+<div class="grid">
+<div class="stat"><b id="fileCount">0</b><span>FILES</span></div>
+<div class="stat"><b id="sheetCount">0</b><span>SHEETS</span></div>
+<div class="stat"><b id="totalRows">0</b><span>TOTAL ROWS</span></div>
+<div class="stat"><b id="keptCount">0</b><span>KEPT</span></div>
+<div class="stat"><b id="removedCount">0</b><span>REMOVED</span></div>
+</div>
+<div id="summary" class="status">Chưa chạy.</div>
+</div>
+
+<div class="card">
+<h2>5. Thống kê theo file</h2>
+<div class="table-wrap"><table><thead><tr><th>SOURCE FILE</th><th>TOTAL</th><th>KEPT</th><th>REMOVED</th></tr></thead><tbody id="fileStatsBody"></tbody></table></div>
+</div>
+
+<div class="card">
+<h2>6. Thống kê theo keyword</h2>
+<div class="small" id="kwNote">Một row match nhiều keyword vẫn được đếm ở mỗi keyword liên quan; tổng KEPT/REMOVED ở mục 4 tính theo unique rows (không cộng dồn trùng).</div>
+<div class="table-wrap"><table><thead><tr><th>NHÓM</th><th>KEYWORD</th><th>Ý NGHĨA (khớp → ?)</th><th>MATCHED ROWS</th></tr></thead><tbody id="kwBody"></tbody></table></div>
+</div>
+
+<div class="card">
+<h2>7. Chi tiết theo sheet</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>FILE</th><th>SHEET</th><th>HEADER ROW</th><th>DATA ROWS</th><th>KEPT</th><th>REMOVED</th></tr></thead><tbody id="detailBody"></tbody></table></div>
+</div>
+
+<div class="card">
+<h2>8. Log</h2><div id="log" class="log">P010 QA Data Cleaner v2.1 ready.</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+
+/* ============================================================
+   CORE LOGIC — không đổi so với v2.0 (đã unit-test kỹ), giữ
+   nguyên tuyệt đối để không phá row-counting/matching engine.
+   Nhất quán với Excel Row Counter v1.4: không tin ws['!ref'].
+   ============================================================ */
+var DIACRITIC_MARKS_RE = new RegExp("[̀-ͯ]", "g");
+
+function stripDiacritics(s) {
+  return String(s == null ? "" : s)
+    .normalize("NFD")
+    .replace(DIACRITIC_MARKS_RE, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+}
+function tokenize(s) {
+  return stripDiacritics(s).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+}
+function containsSubsequence(textTokens, kwTokens) {
+  if (!kwTokens.length) return false;
+  for (let i = 0; i + kwTokens.length <= textTokens.length; i++) {
+    let ok = true;
+    for (let j = 0; j < kwTokens.length; j++) { if (textTokens[i + j] !== kwTokens[j]) { ok = false; break; } }
+    if (ok) return true;
+  }
+  return false;
+}
+function actualRowsInfo(ws) {
+  const rowsWithData = new Set();
+  let minC = Infinity, maxC = -1;
+  for (const key in ws) {
+    if (key.charCodeAt(0) === 33) continue;
+    if (!/^[A-Z]+[0-9]+$/i.test(key)) continue;
+    const cell = ws[key];
+    if (!cell || cell.v === undefined || cell.v === null) continue;
+    if (typeof cell.v === "string" && cell.v.trim() === "") continue;
+    const addr = XLSX.utils.decode_cell(key);
+    rowsWithData.add(addr.r);
+    if (addr.c < minC) minC = addr.c;
+    if (addr.c > maxC) maxC = addr.c;
+  }
+  const sorted = [...rowsWithData].sort((a, b) => a - b);
+  if (!sorted.length) return { headerRow: null, dataRows: [], minC: 0, maxC: -1, totalDataRows: 0 };
+  const headerRow = sorted[0];
+  return { headerRow, dataRows: sorted.slice(1), minC, maxC, totalDataRows: sorted.length - 1 };
+}
+function headersOf(ws, info) {
+  if (info.headerRow === null) return [];
+  const out = [];
+  for (let c = info.minC; c <= info.maxC; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r: info.headerRow, c })];
+    out.push({ index: c, name: String(cell && cell.v != null ? cell.v : "").trim() || `COL_${c + 1}` });
+  }
+  return out;
+}
+function cellValue(ws, r, c) {
+  const cell = ws[XLSX.utils.encode_cell({ r, c })];
+  return cell && cell.v != null ? cell.v : "";
+}
+// Generic matching engine — không biết/không quan tâm mode Whitelist hay
+// Blacklist, chỉ trả về danh sách keyword khớp. Việc quyết định KEEP/REMOVE
+// theo mode nằm hoàn toàn ở nơi gọi (xem CLEAN bên dưới) — KHÔNG hard-code
+// bất kỳ logic riêng nào cho 1 case cụ thể (mầm non hay cấp học) ở đây.
+function matchKeywords(text, activeKeywords) {
+  const tokens = tokenize(text);
+  if (!tokens.length) return [];
+  const hits = [];
+  for (const kw of activeKeywords) { if (containsSubsequence(tokens, tokenize(kw.text))) hits.push(kw.text); }
+  return hits;
+}
+function yieldToUI() { return new Promise(r => setTimeout(r, 0)); }
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let files = [], scan = [], cleaned = [], running = false, scanned = false;
+let filterMode = "whitelist"; // "whitelist" | "blacklist" — đổi mode KHÔNG đụng tới files/scan/cleaned
+
+// 2 bộ keyword mặc định độc lập — mỗi mode giữ trạng thái bật/tắt/keyword
+// tùy chỉnh riêng, không ảnh hưởng lẫn nhau khi người dùng đổi qua lại mode.
+let WHITELIST_GROUPS = [
+  { id: "th", label: "Tiểu học", enabled: true, keywords: [
+    { text: "tiểu học", enabled: true }, { text: "TH", enabled: true } ] },
+  { id: "thcs", label: "THCS", enabled: true, keywords: [
+    { text: "trung học cơ sở", enabled: true }, { text: "THCS", enabled: true } ] },
+  { id: "thpt", label: "THPT", enabled: true, keywords: [
+    { text: "trung học phổ thông", enabled: true }, { text: "THPT", enabled: true } ] },
+  { id: "lien_cap", label: "Liên cấp", enabled: true, keywords: [
+    { text: "liên cấp", enabled: true }, { text: "TH-THCS", enabled: true },
+    { text: "THCS-THPT", enabled: true }, { text: "TH-THCS-THPT", enabled: true } ] },
+  { id: "gdtx", label: "GDTX", enabled: true, keywords: [
+    { text: "GDTX", enabled: true }, { text: "giáo dục thường xuyên", enabled: true } ] },
+  { id: "custom", label: "Tùy chỉnh", enabled: true, keywords: [] },
+];
+let BLACKLIST_GROUPS = [
+  { id: "mam_non", label: "Mầm non / Nhà trẻ", enabled: true, keywords: [
+    { text: "mầm non", enabled: true }, { text: "nhà trẻ", enabled: true },
+    { text: "nhóm trẻ", enabled: true }, { text: "mẫu giáo", enabled: true } ] },
+  { id: "custom", label: "Tùy chỉnh", enabled: true, keywords: [] },
+];
+function activeGroups(){ return filterMode === "whitelist" ? WHITELIST_GROUPS : BLACKLIST_GROUPS; }
+
+function log(s){$("log").textContent+="\n"+s;$("log").scrollTop=$("log").scrollHeight}
+const SUPPORTED_EXTENSIONS=new Set(["xlsx","xls","xlsm","xlsb","csv"]);
+function isSupportedFile(f){
+ const name=String(f?.name||"").trim().toLowerCase();
+ const dot=name.lastIndexOf(".");
+ if(dot<0)return false;
+ return SUPPORTED_EXTENSIONS.has(name.slice(dot+1));
+}
+function dedupe(fs){
+ const m=new Map();
+ fs.filter(isSupportedFile).forEach(f=>m.set((f.webkitRelativePath||f.name)+"|"+f.size+"|"+f.lastModified,f));
+ return [...m.values()];
+}
+function safeName(s){
+ const name=String(s||"").replace(/[\\/:*?"<>|]/g,"_");
+ const dot=name.lastIndexOf(".");
+ return dot>0?name.slice(0,dot):name;
+}
+
+/* ============================================================
+   FILE SELECTION (đọc trực tiếp input.files, không qua label
+   trung gian — tránh lỗi "không nhận được file" đã gặp ở bản cũ).
+   Hàm này KHÔNG được gọi bởi bất kỳ handler đổi mode/keyword nào
+   bên dưới — đổi mode/keyword tuyệt đối không làm mất file đã chọn.
+   ============================================================ */
+function selectFiles(fs,source){
+ const rawFiles=[...fs];
+ files=dedupe(rawFiles);scan=[];cleaned=[];scanned=false;
+ $("scanBtn").disabled=!files.length;$("cleanBtn").disabled=true;$("zipBtn").disabled=true;$("reportBtn").disabled=true;
+ $("matchCol").innerHTML='<option value="">-- Scan để chọn cột --</option>';$("matchCol").disabled=true;
+ $("status").className="status";
+ if(!files.length){
+   $("status").className="status bad";
+   $("status").textContent=`Browser đã trả về ${rawFiles.length} file nhưng không có file hợp lệ (.xlsx/.xls/.xlsm/.xlsb/.csv).`;
+   return;
+ }
+ $("status").textContent=`Đã nhận ${files.length} file từ ${source}. (Tổng file browser trả về: ${rawFiles.length})`;
+ $("fileList").style.display="block";
+ const unsupported=rawFiles.filter(f=>!isSupportedFile(f));
+ const acceptedHtml=files.map((f,i)=>`${i+1}. ${f.webkitRelativePath||f.name}`).join("<br>");
+ $("fileList").innerHTML=acceptedHtml || "Không có file hợp lệ.";
+ log(`INPUT | ${source} | browser=${rawFiles.length} | accepted=${files.length} | rejected=${unsupported.length}`);
+ if(unsupported.length) log("REJECTED EXTENSIONS | "+unsupported.map(f=>f.name).join(" | "));
+}
+$("fileInput").onchange=e=>selectFiles([...e.target.files],"file picker");
+$("folderInput").onchange=e=>selectFiles([...e.target.files],"folder picker");
+$("clearBtn").onclick=()=>location.reload();
+
+/* ============================================================
+   FILTER MODE
+   ============================================================ */
+const MODE_DESC = {
+ whitelist: "Whitelist: chỉ KEEP những dòng khớp ít nhất 1 keyword đang bật. Dòng không khớp keyword nào → REMOVED.",
+ blacklist: "Blacklist: giữ (KEEP) toàn bộ dữ liệu, chỉ REMOVE những dòng khớp ít nhất 1 keyword đang bật.",
+};
+function setFilterMode(m){
+ filterMode = m;
+ $("modeWhitelistWrap").className = "modeOpt" + (m==="whitelist" ? " active" : "");
+ $("modeBlacklistWrap").className = "modeOpt" + (m==="blacklist" ? " active" : "");
+ $("modeDesc").textContent = MODE_DESC[m];
+ $("modeBadge").textContent = m.toUpperCase();
+ $("modeBadge").className = "badge " + (m==="whitelist" ? "badge-whitelist" : "badge-blacklist");
+ renderGroupSelect();
+ renderGroups();
+ log(`MODE CHANGED -> ${m.toUpperCase()} (files/scan hiện tại không đổi: ${files.length} file đang chọn)`);
+}
+$("modeWhitelist").onchange=()=>{ if($("modeWhitelist").checked) setFilterMode("whitelist"); };
+$("modeBlacklist").onchange=()=>{ if($("modeBlacklist").checked) setFilterMode("blacklist"); };
+
+/* ============================================================
+   KEYWORD UI — render/toggle luôn thao tác trên activeGroups()
+   (đúng bộ của mode đang chọn), không đụng tới `files`.
+   ============================================================ */
+function renderGroupSelect(){
+ $("kwGroupSelect").innerHTML=activeGroups().map((g,i)=>`<option value="${i}">${g.label}</option>`).join("");
+ $("kwGroupSelect").value=String(activeGroups().length-1); // mặc định nhóm "Tùy chỉnh"
+}
+function renderGroups(){
+ $("groupsContainer").innerHTML=activeGroups().map((g,gi)=>`
+  <div class="kwgroup">
+   <label class="grouphead"><input type="checkbox" data-group="${gi}" ${g.enabled?"checked":""}> ${g.label} <span class="small">(${g.keywords.length} keyword)</span></label>
+   <div class="chips">
+    ${g.keywords.map((k,ki)=>`<label class="chip ${g.enabled?"":"chip-disabled"}"><input type="checkbox" data-group="${gi}" data-kw="${ki}" ${k.enabled?"checked":""} ${g.enabled?"":"disabled"}> ${k.text}</label>`).join("") || '<span class="small">Chưa có keyword — dùng ô "Thêm keyword" bên dưới.</span>'}
+   </div>
+  </div>`).join("");
+}
+$("groupsContainer").addEventListener("change",e=>{
+ const t=e.target; if(t.tagName!=="INPUT")return;
+ const gi=+t.dataset.group;
+ const groups=activeGroups();
+ if(t.dataset.kw===undefined){ groups[gi].enabled=t.checked; renderGroups(); }
+ else { groups[gi].keywords[+t.dataset.kw].enabled=t.checked; }
+});
+$("addKeyword").onclick=()=>{
+ const v=$("newKeyword").value.trim();
+ if(!v)return;
+ const gi=+$("kwGroupSelect").value;
+ const group=activeGroups()[gi];
+ const vTokens=JSON.stringify(tokenize(v));
+ if(group.keywords.some(k=>JSON.stringify(tokenize(k.text))===vTokens)){
+   log(`SKIP ADD | "${v}" đã tồn tại (cùng nghĩa) trong nhóm ${group.label} (mode ${filterMode.toUpperCase()})`);
+ } else {
+   group.keywords.push({text:v,enabled:true});
+   log(`ADD KEYWORD | "${v}" -> nhóm ${group.label} (mode ${filterMode.toUpperCase()})`);
+ }
+ $("newKeyword").value="";renderGroups();
+};
+function getActiveKeywords(){
+ const out=[];
+ activeGroups().forEach(g=>{ if(!g.enabled)return; g.keywords.forEach(k=>{ if(k.enabled) out.push({text:k.text, groupId:g.id, groupLabel:g.label}); }); });
+ return out;
+}
+renderGroupSelect();renderGroups();
+
+/* ============================================================
+   WORKBOOK READING
+   ============================================================ */
+async function workbook(file){
+ if(/\.csv$/i.test(file.name)){
+   const text=await file.text();
+   return XLSX.read(text,{type:"string",raw:true});
+ }
+ return XLSX.read(await file.arrayBuffer(),{type:"array",dense:false,cellStyles:true,cellDates:true});
+}
+function setProgress(pct,msg){
+ $("actionStatus").textContent=msg;
+ $("progressBar").style.width=Math.max(0,Math.min(100,pct))+"%";
+}
+
+/* ============================================================
+   SCAN — không đổi so với v2.0
+   ============================================================ */
+$("scanBtn").onclick=async()=>{
+ if(running||!files.length)return;
+ running=true;$("scanBtn").disabled=true;$("cleanBtn").disabled=true;$("zipBtn").disabled=true;$("reportBtn").disabled=true;
+ try{
+  scan=[];$("log").textContent="SCAN v2.1 START | actual-cell range, ignoring !ref/dimension";
+  const colSet=new Set(),fileSet=new Set();let totalRows=0;
+  for(let i=0;i<files.length;i++){
+   const f=files[i];
+   try{
+    const wb=await workbook(f);
+    for(const sn of wb.SheetNames){
+     const ws=wb.Sheets[sn];
+     const info=actualRowsInfo(ws);
+     if(info.headerRow===null){ log(`${f.name} | ${sn} | EMPTY (không có cell dữ liệu)`); continue; }
+     const hs=headersOf(ws,info);
+     hs.forEach(h=>colSet.add(h.name));fileSet.add(f.name);totalRows+=info.totalDataRows;
+     scan.push({file:f.name,path:f.webkitRelativePath||f.name,sheet:sn,ws,info,headers:hs});
+     log(`${f.name} | ${sn} | header_row=${info.headerRow+1} | data_rows=${info.totalDataRows}`);
+    }
+   }catch(e){log(`ERROR | ${f.name} | ${e.message}`)}
+   if(i%3===2){ setProgress(i/files.length*100,`Đang scan ${i+1}/${files.length} file...`); await yieldToUI(); }
+  }
+  const colsArr=[...colSet];
+  $("matchCol").innerHTML='<option value="">-- Chọn cột --</option>'+colsArr.map(x=>`<option>${x}</option>`).join("");
+  const auto=colsArr.find(c=>JSON.stringify(tokenize(c))===JSON.stringify(["ten","truong"]));
+  if(auto){ $("matchCol").value=auto; $("matchColHint").textContent=`Đã tự chọn cột "${auto}" (khớp TEN_TRUONG).`; }
+  else { $("matchColHint").textContent="Không tìm thấy cột TEN_TRUONG — vui lòng chọn cột thủ công."; }
+  $("matchCol").disabled=false;
+  $("fileCount").textContent=fileSet.size.toLocaleString("vi-VN");$("sheetCount").textContent=scan.length.toLocaleString("vi-VN");$("totalRows").textContent=totalRows.toLocaleString("vi-VN");
+  $("keptCount").textContent="0";$("removedCount").textContent=totalRows.toLocaleString("vi-VN");
+  $("summary").className="status good";$("summary").textContent=`Scan xong: ${fileSet.size} files | ${scan.length} sheets | ${totalRows.toLocaleString("vi-VN")} actual data rows (đối chiếu Excel Row Counter v1.4).`;
+  $("actionStatus").className="status good";$("actionStatus").textContent="Scan hoàn tất. Chọn cột nhận diện + mode lọc + keyword rồi Clean.";
+  setProgress(100,"Scan hoàn tất.");
+  $("cleanBtn").disabled=false;scanned=true;
+ } finally {
+  running=false;$("scanBtn").disabled=false;
+ }
+};
+
+/* ============================================================
+   CLEAN — generic Whitelist/Blacklist engine.
+   Whitelist: hits.length>0 -> KEEP | hits.length===0 -> REMOVE
+   Blacklist: hits.length>0 -> REMOVE | hits.length===0 -> KEEP
+   Đây là ĐIỂM DUY NHẤT trong toàn bộ tool quyết định KEEP/REMOVE
+   theo mode — matchKeywords() ở trên hoàn toàn không biết mode.
+   ============================================================ */
+function validateTotals(){
+ let total=0,kept=0,removed=0;
+ cleaned.forEach(e=>{ total+=e.info.totalDataRows; kept+=e.keptRows.length; removed+=e.removedRows.length; });
+ return {ok: total===kept+removed, total, kept, removed};
+}
+$("cleanBtn").onclick=async()=>{
+ if(running||!scanned)return;
+ const matchColName=$("matchCol").value;
+ if(!matchColName){
+  $("actionStatus").className="status warn";
+  $("actionStatus").textContent="Vui lòng chọn cột dùng để nhận diện cấp học trước khi Clean.";
+  return;
+ }
+ running=true;$("scanBtn").disabled=true;$("cleanBtn").disabled=true;$("zipBtn").disabled=true;$("reportBtn").disabled=true;
+ try{
+  cleaned=[];
+  const isWhitelist = filterMode==="whitelist";
+  const activeKeywords=getActiveKeywords();
+  $("log").textContent=`CLEAN v2.1 START | mode=${filterMode.toUpperCase()} | match_column=${matchColName} | active_keywords=${activeKeywords.length}`;
+  if(!activeKeywords.length) log(`WARNING | Không có keyword nào đang bật -> mode ${filterMode.toUpperCase()}: ${isWhitelist ? "toàn bộ row sẽ là REMOVED" : "toàn bộ row sẽ là KEPT"}.`);
+  const kwCounts={}; activeKeywords.forEach(k=>kwCounts[k.text]=0);
+  const totalRows=scan.reduce((s,e)=>s+e.info.totalDataRows,0);
+  let processedRows=0;
+  for(let i=0;i<scan.length;i++){
+   const e=scan[i];
+   const h=e.headers.find(x=>x.name===matchColName);
+   const keptRows=[],removedRows=[];
+   if(!h){
+    // Không đọc được cột nhận diện cho sheet này: áp dụng đúng công thức
+    // generic (hits=[] cho mọi row) thay vì hardcode -> nhất quán với logic bên dưới.
+    e.info.dataRows.forEach(r=>{
+     const isKept = !isWhitelist;
+     (isKept?keptRows:removedRows).push({r,matchedKeywords:[],schoolName:""});
+    });
+    processedRows+=e.info.dataRows.length;
+    log(`${e.file} | ${e.sheet} | WARNING: cột "${matchColName}" không tồn tại trong sheet này -> áp dụng mode ${filterMode.toUpperCase()}: toàn bộ ${e.info.dataRows.length} rows -> ${isWhitelist?"REMOVED":"KEPT"}`);
+   } else {
+    for(const r of e.info.dataRows){
+     const val=cellValue(e.ws,r,h.index);
+     const hits=matchKeywords(val,activeKeywords);
+     const isKept = isWhitelist ? hits.length>0 : hits.length===0;
+     const rowEntry={r,matchedKeywords:hits,schoolName:String(val)};
+     (isKept?keptRows:removedRows).push(rowEntry);
+     hits.forEach(t=>kwCounts[t]++);
+     processedRows++;
+     if(processedRows%2000===0){
+      const pct=processedRows/totalRows*100;
+      setProgress(pct,`Processing ${processedRows.toLocaleString("vi-VN")} / ${totalRows.toLocaleString("vi-VN")} rows – ${pct.toFixed(1)}%`);
+      await yieldToUI();
+     }
+    }
+   }
+   cleaned.push({...e,matchColIndex:h?h.index:-1,keptRows,removedRows});
+   log(`${e.file} | ${e.sheet} | total=${e.info.totalDataRows} | kept=${keptRows.length} | removed=${removedRows.length}`);
+  }
+  const v=validateTotals();
+  $("totalRows").textContent=v.total.toLocaleString("vi-VN");
+  $("keptCount").textContent=v.kept.toLocaleString("vi-VN");
+  $("removedCount").textContent=v.removed.toLocaleString("vi-VN");
+  const effectLabel = isWhitelist ? "Khớp → KEPT" : "Khớp → REMOVED";
+  $("kwNote").textContent=`Một row match nhiều keyword vẫn được đếm ở mỗi keyword liên quan; tổng KEPT/REMOVED ở mục 4 tính theo unique rows (không cộng dồn trùng). Mode hiện tại: ${filterMode.toUpperCase()} — ${effectLabel.toLowerCase()}.`;
+  $("kwBody").innerHTML=activeKeywords.map(k=>`<tr><td>${k.groupLabel}</td><td>${k.text}</td><td>${effectLabel}</td><td>${kwCounts[k.text].toLocaleString("vi-VN")}</td></tr>`).join("");
+  const fileAgg=new Map();
+  cleaned.forEach(e=>{
+   if(!fileAgg.has(e.file))fileAgg.set(e.file,{total:0,kept:0,removed:0});
+   const a=fileAgg.get(e.file); a.total+=e.info.totalDataRows; a.kept+=e.keptRows.length; a.removed+=e.removedRows.length;
+  });
+  $("fileStatsBody").innerHTML=[...fileAgg.entries()].map(([file,a])=>`<tr><td>${file}</td><td>${a.total.toLocaleString("vi-VN")}</td><td>${a.kept.toLocaleString("vi-VN")}</td><td>${a.removed.toLocaleString("vi-VN")}</td></tr>`).join("");
+  $("detailBody").innerHTML=cleaned.map((e,i)=>`<tr><td>${i+1}</td><td>${e.file}</td><td>${e.sheet}</td><td>${e.info.headerRow+1}</td><td>${e.info.totalDataRows.toLocaleString("vi-VN")}</td><td>${e.keptRows.length.toLocaleString("vi-VN")}</td><td>${e.removedRows.length.toLocaleString("vi-VN")}</td></tr>`).join("");
+  setProgress(100,`Clean hoàn tất. Mode=${filterMode.toUpperCase()} | Total=${v.total.toLocaleString("vi-VN")} | Kept=${v.kept.toLocaleString("vi-VN")} | Removed=${v.removed.toLocaleString("vi-VN")}`);
+  if(v.ok){
+   $("summary").className="status good";
+   $("summary").textContent=`Filter Mode: ${filterMode.toUpperCase()}\nTotal rows: ${v.total.toLocaleString("vi-VN")}\nKept: ${v.kept.toLocaleString("vi-VN")}\nRemoved: ${v.removed.toLocaleString("vi-VN")}\n(Total = Kept + Removed ✓)`;
+   $("actionStatus").className="status good";
+   $("zipBtn").disabled=false;$("reportBtn").disabled=false;
+  } else {
+   $("summary").className="status bad";$("summary").textContent=`LỖI: Total (${v.total}) ≠ Kept + Removed (${v.kept}+${v.removed}). Không cho phép export.`;
+   $("actionStatus").className="status bad";$("actionStatus").textContent="Dữ liệu không khớp — đã chặn export, vui lòng chạy lại Scan/Clean.";
+   log("VALIDATION FAILED | Total != Kept + Removed — export bị chặn.");
+  }
+ } finally {
+  running=false;$("scanBtn").disabled=false;$("cleanBtn").disabled=false;
+ }
+};
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+function groupByFile(entries){
+ const map=new Map();
+ entries.forEach(e=>{ if(!map.has(e.file))map.set(e.file,[]); map.get(e.file).push(e); });
+ return map;
+}
+function addSheetForRows(wb,entry,rowsList,usedNames){
+ if(!rowsList.length)return false;
+ const info=entry.info,ws={};
+ for(let c=info.minC;c<=info.maxC;c++){
+  const cell=entry.ws[XLSX.utils.encode_cell({r:info.headerRow,c})];
+  ws[XLSX.utils.encode_cell({r:0,c:c-info.minC})]={v:cell?cell.v:"",t:cell?cell.t:"s"};
+ }
+ rowsList.forEach((r,i)=>{
+  const outR=i+1;
+  for(let c=info.minC;c<=info.maxC;c++){
+   const cell=entry.ws[XLSX.utils.encode_cell({r,c})];
+   if(cell)ws[XLSX.utils.encode_cell({r:outR,c:c-info.minC})]={v:cell.v,t:cell.t};
+  }
+ });
+ ws["!ref"]=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rowsList.length,c:info.maxC-info.minC}});
+ let name=(entry.sheet||"Sheet1").slice(0,31),base=name,n=2;
+ while(usedNames.has(name)){ name=(base.slice(0,28)+"_"+n).slice(0,31); n++; }
+ usedNames.add(name);
+ XLSX.utils.book_append_sheet(wb,ws,name);
+ return true;
+}
+function buildFileWorkbook(entries,kind){
+ const wb=XLSX.utils.book_new(),usedNames=new Set();let any=false;
+ entries.forEach(e=>{
+  const rowsList=(kind==="kept"?e.keptRows:e.removedRows).map(x=>x.r);
+  if(addSheetForRows(wb,e,rowsList,usedNames))any=true;
+ });
+ return any?wb:null;
+}
+function triggerDownload(blob,filename){
+ const url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+$("zipBtn").onclick=async()=>{
+ if(!cleaned.length)return;
+ const v=validateTotals();
+ if(!v.ok){ $("actionStatus").className="status bad";$("actionStatus").textContent="Total ≠ Kept + Removed — không export ZIP.";return; }
+ const zip=new JSZip();
+ const keptRoot=zip.folder("P010_KEPT_DATA"),removedRoot=zip.folder("P010_REMOVED_DATA");
+ const byFile=groupByFile(cleaned);
+ for(const [fileName,entries] of byFile){
+  const wbKept=buildFileWorkbook(entries,"kept");
+  if(wbKept)keptRoot.file(safeName(fileName)+"__KEPT.xlsx",XLSX.write(wbKept,{bookType:"xlsx",type:"array",compression:true}));
+  const wbRemoved=buildFileWorkbook(entries,"removed");
+  if(wbRemoved)removedRoot.file(safeName(fileName)+"__REMOVED.xlsx",XLSX.write(wbRemoved,{bookType:"xlsx",type:"array",compression:true}));
+ }
+ const blob=await zip.generateAsync({type:"blob"});
+ const fname=`P010_FILTERED_DATA_v2.1_${filterMode.toUpperCase()}.zip`;
+ triggerDownload(blob,fname);
+ log(`EXPORT | ${fname}`);
+};
+$("reportBtn").onclick=async()=>{
+ if(!cleaned.length)return;
+ const v=validateTotals();
+ if(!v.ok){ $("actionStatus").className="status bad";$("actionStatus").textContent="Total ≠ Kept + Removed — không export Report.";return; }
+ const detail=[["Source File","Sheet","Original Row Number","Status","Matched Keyword(s)","School Name"]];
+ let n=0;
+ for(const e of cleaned){
+  for(const row of e.keptRows){ detail.push([e.file,e.sheet,row.r+1,"KEPT",row.matchedKeywords.join(", "),row.schoolName]); n++; if(n%5000===0)await yieldToUI(); }
+  for(const row of e.removedRows){ detail.push([e.file,e.sheet,row.r+1,"REMOVED",row.matchedKeywords.join(", "),row.schoolName]); n++; if(n%5000===0)await yieldToUI(); }
+ }
+ const fileAgg=new Map();
+ cleaned.forEach(e=>{
+  if(!fileAgg.has(e.file))fileAgg.set(e.file,{total:0,kept:0,removed:0});
+  const a=fileAgg.get(e.file); a.total+=e.info.totalDataRows; a.kept+=e.keptRows.length; a.removed+=e.removedRows.length;
+ });
+ const kwCounts=new Map();
+ cleaned.forEach(e=>[...e.keptRows,...e.removedRows].forEach(row=>row.matchedKeywords.forEach(k=>kwCounts.set(k,(kwCounts.get(k)||0)+1))));
+ const activeKeywords=getActiveKeywords();
+ const isWhitelist=filterMode==="whitelist";
+ const effectLabel = isWhitelist ? "KEEP (khớp -> giữ lại)" : "REMOVE (khớp -> loại bỏ)";
+ const summary=[
+  ["P010 QA DATA CLEANER — REPORT SUMMARY"],[],
+  ["Filter Mode", filterMode.toUpperCase()],
+  ["Total rows",v.total],["Kept",v.kept],["Removed",v.removed],[],
+  ["THEO FILE"],["Source File","Total","Kept","Removed"],
+  ...[...fileAgg.entries()].map(([f,a])=>[f,a.total,a.kept,a.removed]),[],
+  ["THEO KEYWORD (mode "+filterMode.toUpperCase()+", tất cả keyword dưới đây cùng logic: "+effectLabel+")"],
+  ["Nhóm","Keyword","Effect","Matched Rows"],
+  ...activeKeywords.map(k=>[k.groupLabel,k.text,effectLabel,kwCounts.get(k.text)||0]),
+ ];
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),"Summary");
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(detail),"Detail");
+ const fname=`P010_Report_v2.1_${filterMode.toUpperCase()}.xlsx`;
+ const blob=new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array",compression:true})],{type:"application/octet-stream"});
+ triggerDownload(blob,fname);
+ log(`EXPORT | ${fname} | ${detail.length-1} detail rows`);
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,521 @@
+/*
+ * Home page styles. Page-specific only — shared tokens/primitives live in
+ * styles/global.css and the reusable components carry their own CSS.
+ *
+ * Visual language: Design/a_clean_modern_portfolio_website_homepage_screensh.png
+ * — polished editorial portfolio, red + navy identity, restrained red accent,
+ * clean light background, refined cards, strong typography.
+ */
+
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.home-section {
+  scroll-margin-top: calc(var(--header-height) + var(--space-4));
+}
+
+/* Scroll-reveal (Reveal.jsx). Neutralised by the global
+   prefers-reduced-motion rule in global.css. */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------------------------------------------------------------- HERO --- */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-8) var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(120% 90% at 100% 0%, var(--color-accent-soft) 0%, transparent 55%),
+    var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  animation: hero-in 0.5s ease both;
+}
+
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.hero__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.hero__body {
+  min-width: 0;
+  max-width: 40rem;
+}
+
+.hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.hero__eyebrow-rule {
+  flex: none;
+  width: 2.5rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-accent);
+}
+
+.hero__name {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-navy);
+}
+
+.hero__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 var(--space-5);
+}
+
+.hero__title-line {
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.hero__title-line--primary {
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  color: var(--color-navy);
+}
+
+.hero__title-line--secondary {
+  font-size: clamp(1.6rem, 3.4vw, 2.3rem);
+  color: var(--color-accent);
+}
+
+.hero__summary {
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-lg);
+  color: var(--color-text-muted);
+  max-width: 34rem;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.hero__note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.hero__highlights {
+  list-style: none;
+  margin: var(--space-6) 0 0;
+  padding: var(--space-5) 0 0;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+}
+
+.hero__highlight {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hero__highlight-value {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.hero__highlight-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* Portrait — supplied asset (src/assets/portrait-le-thi-luyen.jpg). */
+.hero__portrait {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.hero__portrait-frame {
+  position: relative;
+  width: 100%;
+  max-width: 23rem;
+}
+
+.hero__portrait-frame::before {
+  content: '';
+  position: absolute;
+  inset: -14% -16% -6% -16%;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, var(--color-accent-soft) 0%, var(--color-accent-soft) 72%, rgba(251, 233, 234, 0) 100%);
+  z-index: 0;
+}
+
+.hero__portrait-img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: auto;
+  /* The supplied portrait is a subject on a white studio background. `multiply`
+     drops the white into the light hero surface / accent halo so the figure
+     reads as an integrated cut-out rather than a pasted rectangle. */
+  mix-blend-mode: multiply;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .hero__portrait-img {
+    mix-blend-mode: normal;
+  }
+}
+
+/* ------------------------------------------------------------- BUTTONS --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.btn:hover {
+  text-decoration: none;
+}
+
+.btn--primary {
+  background: var(--color-accent);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(200, 30, 46, 0.22);
+}
+
+.btn--primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.btn--ghost {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-accent);
+}
+
+.btn--ghost:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+  box-shadow: none;
+}
+
+/* --------------------------------------------------------------- ABOUT --- */
+.about {
+  max-width: 60rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  font-size: var(--text-lg);
+}
+
+.about__paragraph {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.about__paragraph--takeaway {
+  padding: var(--space-4) var(--space-5);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--color-accent-soft);
+  color: var(--color-navy);
+  font-weight: 500;
+}
+
+/* ------------------------------------------------- WHAT I BRING TO QA --- */
+.bring-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-4);
+}
+
+.bring-card {
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.bring-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.bring-card__title {
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--color-accent);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.bring-card__description {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* -------------------------------------------------------------- SKILLS --- */
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+}
+
+/* ----------------------------------------------------------- EDUCATION --- */
+.education-card {
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  max-width: 40rem;
+}
+
+.education-card__degree {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-lg);
+  color: var(--color-navy);
+}
+
+.education-card__school {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.education-card__year {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+/* ------------------------------------------------------- CURRENT FOCUS --- */
+.focus-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--space-3);
+}
+
+.focus-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.focus-card__mark {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 0.45em;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.focus-card__text {
+  flex: 1;
+}
+
+/* ------------------------------------------------------- WORKING STYLE --- */
+.style-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 52rem;
+}
+
+.style-list__item {
+  position: relative;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.style-list__item::before {
+  content: '';
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  width: 10px;
+  height: 2px;
+  background: var(--color-accent);
+  transform: translateY(-50%);
+}
+
+/* ------------------------------------------------------------- CONTACT --- */
+.contact {
+  max-width: 44rem;
+  padding: var(--space-6);
+  background: var(--color-navy);
+  border: 1px solid var(--color-navy);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.contact__text {
+  margin: 0 0 var(--space-4);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: var(--text-lg);
+}
+
+.contact__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.contact .btn--primary {
+  box-shadow: none;
+}
+
+.contact__note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* --------------------------------------------------------- RESPONSIVE --- */
+@media (max-width: 900px) {
+  .hero__inner {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: left;
+    gap: var(--space-6);
+  }
+
+  .hero__body {
+    max-width: none;
+    width: 100%;
+    order: 1;
+  }
+
+  .hero__summary {
+    max-width: none;
+  }
+
+  .hero__portrait {
+    order: 2;
+    width: 100%;
+  }
+
+  .hero__portrait-frame {
+    max-width: 16rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .home {
+    gap: var(--space-6);
+  }
+
+  .hero {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .hero__title-line--primary {
+    font-size: clamp(1.9rem, 8vw, 2.4rem);
+  }
+
+  .hero__title-line--secondary {
+    font-size: clamp(1.4rem, 5.6vw, 1.9rem);
+  }
+
+  .hero__summary,
+  .about {
+    font-size: var(--text-base);
+  }
+
+  .hero__actions {
+    width: 100%;
+  }
+
+  .hero__actions .btn,
+  .contact__actions .btn {
+    flex: 1 1 12rem;
+  }
+
+  .contact {
+    padding: var(--space-5);
+  }
+}

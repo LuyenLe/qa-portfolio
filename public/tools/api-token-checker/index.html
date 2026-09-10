@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P011 - Token Checker GUI v1.4</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#172033;background:#f5f7fb}
+*{box-sizing:border-box} body{margin:0}.wrap{max-width:1180px;margin:28px auto;padding:0 18px}
+h1{margin:0 0 6px;font-size:28px}.sub{color:#667085;margin-bottom:20px}
+.card{background:#fff;border:1px solid #dfe5ee;border-radius:14px;padding:18px;margin:12px 0;box-shadow:0 3px 12px #17203310}
+h2{font-size:16px;margin:0 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}input,select,button{font:inherit}
+input,select{width:100%;padding:10px 11px;border:1px solid #cbd5e1;border-radius:9px;background:#fff}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:0 0 auto}
+button{border:0;border-radius:9px;padding:10px 15px;font-weight:700;cursor:pointer;background:#172033;color:#fff}
+button.secondary{background:#e8edf5;color:#172033}button.success{background:#087443}
+button:disabled{opacity:.5;cursor:not-allowed}
+.stat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat div{border:1px solid #e1e7ef;border-radius:10px;padding:12px;background:#fafbfc}
+.stat b{display:block;font-size:22px}.muted{color:#667085;font-size:12px}
+.progress{height:12px;background:#e7ebf1;border-radius:99px;overflow:hidden}.bar{height:100%;width:0;background:#0878bd;transition:.15s}
+#log{height:250px;overflow:auto;background:#101827;color:#dbe7f5;border-radius:10px;padding:12px;font:12px ui-monospace,monospace;white-space:pre-wrap}
+.warn{background:#fff7d6;border:1px solid #f1d36b;padding:12px;border-radius:9px;color:#744d00}
+.ok{background:#e9f9ef;border:1px solid #a9dfbd;padding:12px;border-radius:9px;color:#075b2e}
+.bad{background:#fff0f0;border:1px solid #efb0b0;padding:12px;border-radius:9px;color:#9b1c1c}
+small{color:#667085}.full{grid-column:1/-1}
+@media(max-width:800px){.grid,.stat{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>P011 — Token Checker v1.4</h1>
+<div class="sub">GUI HTML chạy trực tiếp trên Ubuntu/Chrome: chọn 1 Excel hoặc cả thư mục → chọn 2 cột → check token → xuất Excel report.</div>
+
+<div class="card">
+<h2>1. Input Excel</h2>
+<div class="row">
+<button id="fileBtn">📄 Chọn file Excel</button>
+<button id="folderBtn" class="secondary" title="Chọn cả thư mục chứa nhiều file Excel">📁 Chọn thư mục</button>
+<input id="fileInput" type="file" accept=".xlsx,.xlsm,.xls" hidden>
+<input id="folderInput" type="file" webkitdirectory directory multiple hidden>
+</div>
+<div id="filesInfo" class="muted" style="margin-top:10px">Chưa chọn dữ liệu.</div>
+<div id="pickerDiag" class="muted" style="margin-top:6px"></div>
+</div>
+
+<div class="card">
+<h2>2. Token API</h2>
+<div class="grid">
+<div><label>Token URL</label><input id="tokenUrl" value="https://hocbaso.moet.gov.vn/AuthToken/GetAuthToken"></div>
+<div class="note" id="apiModeNote">
+  Request chuẩn: <code>POST JSON {"user_name":"...","password":"..."}</code>. v1.4: chọn file hoặc cả thư mục; 3 workers mặc định và retry timeout/network 2 lần.
+  Nếu mở HTML trực tiếp bằng <code>file://</code> và API không cho CORS, browser sẽ chặn đọc response dù Postman vẫn PASS.
+</div>
+<div id="apiDiag" class="note">Chưa test kết nối API.</div>
+<div><label>HTTP method</label><input value="POST" disabled></div>
+<div><label>Username column</label><select id="userCol"><option>— Scan trước —</option></select></div>
+<div><label>Password column</label><select id="passCol"><option>— Scan trước —</option></select></div>
+<div><label>Workers</label><input id="workers" type="number" min="1" max="20" value="3"></div>
+<div><label>Retries</label><input id="retries" type="number" min="0" max="5" value="2"></div>
+<div><label>Timeout (giây)</label><input id="timeout" type="number" min="1" value="20"></div>
+<div><label>Test limit</label><input id="limit" type="number" min="1" placeholder="Để trống = chạy toàn bộ"></div>
+<div><label>Rest giữa batch (ms)</label><input id="rest" type="number" min="0" value="0"></div>
+</div>
+<div class="warn" style="margin-top:12px">
+API request mặc định: <code>POST JSON {"user_name":"...","password":"..."}</code>.
+Password/access_token chỉ dùng trong bộ nhớ để gọi API và <b>không ghi vào report</b>.
+</div>
+</div>
+
+<div class="card">
+<h2>3. Scan cấu trúc</h2>
+<div class="row"><button id="scanBtn">🔎 Scan Excel</button><span id="scanStatus" class="muted"></span></div>
+<div id="scanLog" style="margin-top:12px;max-height:180px;overflow:auto;font-size:12px"></div>
+</div>
+
+<div class="card">
+<h2>4. Check token</h2>
+<div class="stat">
+<div><b id="nFiles">0</b><span class="muted">FILES</span></div>
+<div><b id="nRows">0</b><span class="muted">ROWS</span></div>
+<div><b id="nPass">0</b><span class="muted">PASS</span></div>
+<div><b id="nFail">0</b><span class="muted">FAIL</span></div>
+</div>
+<div style="margin:15px 0"><div class="progress"><div id="bar" class="bar"></div></div><div id="progressText" class="muted" style="margin-top:6px">0 / 0</div></div>
+<button id="testApiBtn" type="button" class="secondary">Test API 1 dòng</button>\n<button id="runBtn" class="success" disabled>▶ CHECK TOKEN</button>
+<button id="downloadBtn" class="secondary" disabled>⬇ Xuất report Excel</button>
+<div id="resultBox" style="margin-top:12px"></div>
+</div>
+
+<div class="card">
+<h2>Log</h2>
+<div id="log"></div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let files=[], records=[], results=[], scanned=false;
+$("pickerDiag").textContent =
+  ("webkitdirectory" in document.createElement("input"))
+  ? "✓ Browser hỗ trợ chọn thư mục."
+  : "⚠ Browser không hỗ trợ chọn thư mục bằng webkitdirectory; nên dùng Chrome/Chromium.";
+
+function log(s){$("log").textContent += s+"\\n"; $("log").scrollTop=$("log").scrollHeight}
+function scanLog(s){$("scanLog").innerHTML += `<div>${escapeHtml(s)}</div>`}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function norm(v){ if(v==null || v==="") return ""; let s=String(v).trim(); return s.endsWith(".0")?s.slice(0,-2):s; }
+
+$("fileBtn").onclick=()=>$("fileInput").click();
+$("folderBtn").onclick=()=>{
+  $("folderInput").value="";
+  $("folderInput").click();
+};
+$("fileInput").onchange=e=>setFiles([...e.target.files]);
+$("folderInput").onchange=e=>setFiles([...e.target.files]);
+
+function setFiles(arr){
+  files=arr
+    .filter(f=>/\.(xlsx|xlsm|xls)$/i.test(f.name))
+    .filter(f=>!f.name.startsWith("~$"));
+
+  scanned=false; records=[]; results=[];
+  $("runBtn").disabled=true; $("downloadBtn").disabled=true;
+
+  if(!files.length){
+    $("filesInfo").textContent="Không tìm thấy file Excel hợp lệ.";
+  }else{
+    const folderPaths=files.map(f=>f.webkitRelativePath||"").filter(Boolean);
+    if(folderPaths.length){
+      const roots=[...new Set(folderPaths.map(p=>p.split("/")[0]))];
+      $("filesInfo").textContent=`📁 ${roots.join(", ")} — ${files.length} file Excel được chọn.`;
+    }else{
+      $("filesInfo").textContent=`📄 ${files.length} file Excel được chọn.`;
+    }
+  }
+
+  $("nFiles").textContent=files.length;
+  $("nRows").textContent=0;
+  $("nPass").textContent=0;
+  $("nFail").textContent=0;
+  $("scanLog").innerHTML="";
+  $("log").textContent="";
+}
+
+async function readWorkbook(file){
+ const buf=await file.arrayBuffer();
+ return XLSX.read(buf,{type:"array",cellDates:false});
+}
+async function scan(){
+  if(files.length && files.some(f=>f.webkitRelativePath)){
+    $("scanStatus").textContent="Đang scan thư mục...";
+  }
+ if(!files.length){alert("Hãy chọn file hoặc thư mục Excel trước.");return}
+ $("scanLog").innerHTML=""; $("scanStatus").textContent="Đang scan...";
+ const cols=new Set(); let count=0;
+ for(const f of files){
+   try{
+    const wb=await readWorkbook(f); let sheets=0;
+    for(const sn of wb.SheetNames){
+      const ws=wb.Sheets[sn];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+      if(!rows.length) continue;
+      const headers=rows[0].map(x=>String(x).trim());
+      headers.forEach(c=>{if(c)cols.add(c)});
+      if(rows.length>1)sheets++;
+    }
+    count++; scanLog(`[${count}/${files.length}] ${f.name} | ${sheets} sheet có dữ liệu`);
+   }catch(e){scanLog(`[ERROR] ${f.name}: ${e.message}`)}
+ }
+ const arr=[...cols].sort((a,b)=>a.localeCompare(b));
+ fillSelect("userCol",arr,"API_HO_SO_TEN_DANG_NHAP");
+ fillSelect("passCol",arr,"API_HO_SO_MAT_KHAU");
+ scanned=true;$("scanStatus").textContent=`Scan xong: ${files.length} file, ${arr.length} cột.`;
+ $("runBtn").disabled=!arr.length;
+}
+function fillSelect(id,arr,pref){
+ const s=$(id);s.innerHTML="";
+ arr.forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;s.appendChild(o)});
+ if(arr.includes(pref))s.value=pref;
+}
+
+$("scanBtn").onclick=scan;
+
+async function buildRecords(){
+ records=[]; const uc=$("userCol").value, pc=$("passCol").value;
+ for(const f of files){
+  const wb=await readWorkbook(f);
+  for(const sn of wb.SheetNames){
+   const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:""});
+   if(!rows.length)continue;
+   const headers=rows[0].map(x=>String(x).trim());
+   const ui=headers.indexOf(uc), pi=headers.indexOf(pc);
+   if(ui<0||pi<0)continue;
+   for(let i=1;i<rows.length;i++){
+    const u=norm(rows[i][ui]), p=norm(rows[i][pi]);
+    if(!u&&!p)continue;
+    records.push({SOURCE_FILE:f.name,SOURCE_PATH:f.webkitRelativePath||f.name,SHEET:sn,EXCEL_ROW:i+1,USERNAME:u,_PASSWORD:p});
+   }
+  }
+ }
+ const lim=Number($("limit").value||0); if(lim>0)records=records.slice(0,lim);
+ $("nRows").textContent=records.length;
+ return records;
+}
+
+async function requestToken(user,password,timeoutSec,retries=2){
+ if(!user||!password)return {
+   status:"FAIL",http:"",error:"Thiếu username hoặc password",kind:"INPUT",attempt:1
+ };
+
+ const url=$("tokenUrl").value.trim();
+ let last = null;
+
+ for(let attempt=1; attempt<=retries+1; attempt++){
+   const ctrl=new AbortController();
+   const timer=setTimeout(()=>ctrl.abort(),timeoutSec*1000);
+
+   try{
+     const r=await fetch(url,{
+       method:"POST",
+       mode:"cors",
+       credentials:"omit",
+       headers:{"Content-Type":"application/json","Accept":"application/json"},
+       body:JSON.stringify({
+         user_name:user,
+         password:password
+       }),
+       signal:ctrl.signal
+     });
+
+     const text=await r.text();
+     let body=null;
+     try{ body=JSON.parse(text); }catch{}
+
+     if(r.ok && body && body.access_token){
+       return {
+         status:"PASS",
+         http:r.status,
+         error:"",
+         kind:"TOKEN_RECEIVED",
+         attempt
+       };
+     }
+
+     let reason="API không trả access_token";
+     if(body && (body.message||body.error))
+       reason=String(body.message||body.error);
+     else if(text)
+       reason=text.slice(0,500);
+
+     // Auth/API response is deterministic; don't retry it.
+     return {
+       status:"FAIL",
+       http:r.status,
+       error:reason,
+       kind:r.status===401||r.status===403?"AUTH_ERROR":"API_RESPONSE",
+       attempt
+     };
+
+   }catch(e){
+     last={
+       status:"FAIL",
+       http:"",
+       error:e.name==="AbortError"
+         ? `Timeout sau ${timeoutSec}s`
+         : `${e.message||e}`,
+       kind:e.name==="AbortError"?"TIMEOUT":"CORS_OR_NETWORK",
+       attempt
+     };
+
+     // Retry only transient timeout/network failures.
+     if(attempt<=retries){
+       await new Promise(resolve=>setTimeout(resolve,400*attempt));
+       continue;
+     }
+
+     if(last.kind==="CORS_OR_NETWORK"){
+       last.error += " Browser không đọc được response. Nếu Postman PASS nhưng HTML FAIL, hãy dùng local proxy.";
+     }
+     return last;
+   }finally{
+     clearTimeout(timer);
+   }
+ }
+ return last || {status:"FAIL",http:"",error:"Unknown error",kind:"UNKNOWN",attempt:retries+1};
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+async function run(){
+ if(!scanned){alert("Hãy Scan Excel trước.");return}
+ $("runBtn").disabled=true;$("downloadBtn").disabled=true;$("resultBox").innerHTML="";
+ try{
+  await buildRecords(); if(!records.length)throw new Error("Không tìm thấy dòng tài khoản hợp lệ.");
+  results=[]; let done=0,pass=0,fail=0; const total=records.length;
+  $("progressText").textContent=`0 / ${total}`;$("bar").style.width="0%";log(`START | ${total} rows | workers=${$("workers").value}`);
+  const workers=Math.max(1,Number($("workers").value)||5), rest=Math.max(0,Number($("rest").value)||0);
+  for(let i=0;i<total;i+=workers){
+   const batch=records.slice(i,i+workers);
+   const out=await Promise.all(batch.map(async x=>{
+    const r=await requestToken(x.USERNAME,x._PASSWORD,Number($("timeout").value)||20,Number($("retries").value)||2);
+    return {SOURCE_FILE:x.SOURCE_FILE,SOURCE_PATH:x.SOURCE_PATH,SHEET:x.SHEET,EXCEL_ROW:x.EXCEL_ROW,USERNAME:x.USERNAME,STATUS:r.status,HTTP_STATUS:r.http,KIND:r.kind,ATTEMPT:r.attempt,ERROR:r.error};
+   }));
+   for(const r of out){results.push(r);done++; if(r.STATUS==="PASS")pass++;else fail++; log(`${done}/${total} | ${r.SOURCE_FILE} | row ${r.EXCEL_ROW} | ${r.USERNAME} | ${r.STATUS} | HTTP=${r.HTTP_STATUS||"-"} | ${r.KIND||"-"} | attempt=${r.ATTEMPT||r.attempt||"-"}`)}
+   $("nPass").textContent=pass;$("nFail").textContent=fail;$("progressText").textContent=`${done} / ${total}`;$("bar").style.width=`${done/total*100}%`;
+   if(rest && done<total)await sleep(rest);
+  }
+  $("downloadBtn").disabled=false;
+  $("resultBox").innerHTML=`<div class="${fail?'bad':'ok'}"><b>Hoàn tất.</b> PASS: ${pass} — FAIL: ${fail}.<br>FAIL chỉ có nghĩa API không cấp token; cần xem HTTP/error để phân loại nguyên nhân.</div>`;
+  log(`DONE | PASS=${pass} | FAIL=${fail}`);
+ }catch(e){$("resultBox").innerHTML=`<div class="bad">${escapeHtml(e.message)}</div>`;log("[ERROR] "+e.message)}
+ finally{$("runBtn").disabled=false}
+}
+
+
+$("testApiBtn").onclick=async ()=>{
+ if(!scanned){alert("Hãy Scan Excel trước.");return}
+ await buildRecords();
+ if(!records.length){alert("Không có dòng tài khoản.");return}
+ const x=records[0];
+ $("apiDiag").textContent=`Đang test row ${x.EXCEL_ROW} (${x.USERNAME})...`;
+ const r=await requestToken(x.USERNAME,x._PASSWORD,Number($("timeout").value)||20,Number($("retries").value)||2);
+ if(r.status==="PASS"){
+   $("apiDiag").innerHTML=`<b style="color:#087f5b">PASS</b> — HTTP ${r.http} — API đã trả access_token.`;
+ }else{
+   $("apiDiag").innerHTML=`<b style="color:#c92a2a">FAIL</b> — HTTP ${r.http||"-"} — ${escapeHtml(r.error)}<br><small>Kind: ${escapeHtml(r.kind||"-")}</small>`;
+ }
+};
+
+$("runBtn").onclick=run;
+
+$("downloadBtn").onclick=()=>{
+ const wb=XLSX.utils.book_new();
+ const summary=[
+  ["Metric","Value"],["Total files",files.length],["Total rows",results.length],
+  ["PASS",results.filter(x=>x.STATUS==="PASS").length],["FAIL",results.filter(x=>x.STATUS==="FAIL").length],
+  ["Username column",$("userCol").value],["Password column",$("passCol").value],["Token URL",$("tokenUrl").value]
+ ];
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),"Summary");
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(results),"All_Result");
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(results.filter(x=>x.STATUS==="FAIL")),"Fail_List");
+ const by={}; for(const r of results){by[r.SOURCE_FILE]??={SOURCE_FILE:r.SOURCE_FILE,TOTAL:0,PASS:0,FAIL:0};by[r.SOURCE_FILE].TOTAL++;by[r.SOURCE_FILE][r.STATUS]++}
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(Object.values(by).map(x=>({SOURCE_FILE:x.SOURCE_FILE,TOTAL:x.TOTAL,PASS:x.PASS,FAIL:x.FAIL}))),"By_File");
+ XLSX.writeFile(wb,`BaoCao_Token_Check_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.xlsx`);
+};
+</script>
+</body>
+</html>
