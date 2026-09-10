@@ -36,7 +36,7 @@ export default function Home() {
 
   // Final CV PDF lives in public/ so it is copied verbatim into the production
   // build and served from the deploy base path (import.meta.env.BASE_URL).
-  const cvHref = `${import.meta.env.BASE_URL}Le_Thi_Luyen_Manual_QA_QC_CV.pdf`;
+  const cvHref = `${import.meta.env.BASE_URL}Le_Thi_Luyen_Manual_QA_QC_CV_FINAL.pdf`;
 
   // "Get in Touch" scrolls to the contact section. A plain href="#contact" would
   // collide with HashRouter (which owns location.hash), so scroll imperatively.
@@ -81,7 +81,7 @@ export default function Home() {
               <a
                 className="btn btn--primary"
                 href={cvHref}
-                download="Le_Thi_Luyen_Manual_QA_QC_CV.pdf"
+                download="Le_Thi_Luyen_Manual_QA_QC_CV_FINAL.pdf"
               >
                 {hero.primary_cta}
               </a>
