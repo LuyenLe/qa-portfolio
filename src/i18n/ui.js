@@ -87,6 +87,25 @@ export const ui = {
   coming_soon: { en: 'Coming Soon', vi: 'Sắp có' },
   link_not_available: { en: 'Link not available yet', vi: 'Chưa có liên kết' },
 
+  // QA Checklists index page
+  checklists_eyebrow: { en: 'QA Checklists', vi: 'QA Checklists' },
+  checklists_title: {
+    en: 'Reusable QA checklists',
+    vi: 'Bộ QA checklist tái sử dụng',
+  },
+  checklists_intro: {
+    en: 'A set of reusable manual-QA checklist artifacts built from real project work — one per test area, maintained as living Google Sheets in English and Vietnamese. Each card opens the master artifact; the sheets are the source of truth, not this page.',
+    vi: 'Một bộ QA checklist thủ công tái sử dụng, đúc kết từ công việc dự án thực tế — mỗi checklist cho một mảng kiểm thử, được duy trì dưới dạng Google Sheets song ngữ Anh/Việt. Mỗi thẻ mở tài liệu gốc; bảng tính mới là nguồn chuẩn, không phải trang này.',
+  },
+  checklist_open_en: { en: 'Open EN', vi: 'Mở bản EN' },
+  checklist_open_vi: { en: 'Open VI', vi: 'Mở bản VI' },
+  checklist_artifact_note: {
+    en: 'Opens the master Google Sheet in a new tab',
+    vi: 'Mở Google Sheet gốc trong tab mới',
+  },
+  checklist_tags_label: { en: 'Focus areas', vi: 'Nội dung trọng tâm' },
+  status_ready: { en: 'Ready', vi: 'Sẵn sàng' },
+
   // Usage / fair-use limit (advisory only — NOT security enforcement)
   free_uses: { en: 'Free Uses', vi: 'Lượt dùng miễn phí' },
   usage_limit: { en: 'Usage Limit', vi: 'Giới hạn sử dụng' },
