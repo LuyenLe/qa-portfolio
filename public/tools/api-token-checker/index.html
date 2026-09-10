@@ -48,7 +48,7 @@ small{color:#667085}.full{grid-column:1/-1}
 <div class="card">
 <h2>2. Token API</h2>
 <div class="grid">
-<div><label>Token URL</label><input id="tokenUrl" value="https://hocbaso.moet.gov.vn/AuthToken/GetAuthToken"></div>
+<div><label>Token URL</label><input id="tokenUrl" placeholder="Nhập URL API token / Enter API token URL"></div>
 <div class="note" id="apiModeNote">
   Request chuẩn: <code>POST JSON {"user_name":"...","password":"..."}</code>. v1.4: chọn file hoặc cả thư mục; 3 workers mặc định và retry timeout/network 2 lần.
   Nếu mở HTML trực tiếp bằng <code>file://</code> và API không cho CORS, browser sẽ chặn đọc response dù Postman vẫn PASS.
