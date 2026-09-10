@@ -14,8 +14,9 @@ import './ToolDetail.css';
 // - Tools 01–05 (static HTML) load their real interface in a sandboxed iframe
 //   from public/tools/<slug>/index.html (see toolIntegration.js). The existing
 //   tool logic is NOT rewritten in React — this page is only the frame around it.
-// - Tool 06 (SRS → Testcase) requires a Flask backend and renders an explicit
-//   "Backend required" state instead of a broken/fake UI.
+// - Tool 06 (SRS → Testcase) needs a Flask backend for real execution. It still
+//   shows its ACTUAL interface as a non-executing preview (a bundled sample SRS,
+//   no API calls), followed by a clearly secondary "backend required" notice.
 export default function ToolDetail() {
   const { slug } = useParams();
   const { lang } = useLanguage();
@@ -40,6 +41,11 @@ export default function ToolDetail() {
   const embedUrl = getToolEmbedUrl(tool.id);
   const isBackend = integration?.hosting === 'backend';
   const isPartial = integration?.hosting === 'static-partial';
+  const isPreviewOnly = Boolean(integration?.previewOnly);
+  // The preview build reads the portfolio language from a query param so the
+  // embedded (static) tool chrome matches EN/VI.
+  const frameUrl =
+    embedUrl && isPreviewOnly ? `${embedUrl}?lang=${lang}` : embedUrl;
   const features = t(tool.features, lang) ?? [];
   const workflow = Array.isArray(tool.workflow) ? tool.workflow : null;
   const inputLabel = t(tool.input, lang);
@@ -111,30 +117,41 @@ export default function ToolDetail() {
         </aside>
       )}
 
-      {/* ---- Task C: load the actual existing tool interface ---- */}
-      {!isBackend && embedUrl && (
+      {/* ---- Task C: load the actual existing tool interface ----
+           Shown for embeddable tools AND for the backend tool's non-executing
+           interface preview, so a visitor sees the real UI before the notice. */}
+      {frameUrl && (
         <section className="tool-detail__section">
           <div className="tool-detail__interface-head">
-            <h2>{ui.tool_interface[lang]}</h2>
+            <h2>
+              {isPreviewOnly
+                ? ui.tool_interface_preview[lang]
+                : ui.tool_interface[lang]}
+            </h2>
             <a
               className="tool-detail__newtab"
-              href={embedUrl}
+              href={frameUrl}
               target="_blank"
               rel="noopener noreferrer"
             >
               {ui.tool_open_new_tab[lang]} <span aria-hidden="true">↗</span>
             </a>
           </div>
+          {isPreviewOnly && (
+            <p className="tool-detail__usage text-meta">
+              {ui.tool_interface_preview_note[lang]}
+            </p>
+          )}
           <div className="tool-detail__frame">
             <iframe
-              src={embedUrl}
+              src={frameUrl}
               title={`${tool.title} — ${ui.tool_iframe_title[lang]}`}
               className="tool-detail__iframe"
               loading="lazy"
               sandbox="allow-scripts allow-downloads allow-forms allow-modals allow-popups allow-same-origin"
             />
           </div>
-          {usage?.advisory && (
+          {!isBackend && usage?.advisory && (
             <p className="tool-detail__usage text-meta">
               {ui.fair_use_note[lang]} — {usage.used}/{usage.limit}{' '}
               ({lang === 'vi'

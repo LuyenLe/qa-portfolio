@@ -62,6 +62,11 @@ export const ui = {
   tool_overview: { en: 'Overview', vi: 'Tổng quan' },
   tool_workflow_label: { en: 'Workflow', vi: 'Quy trình' },
   tool_interface: { en: 'Tool interface', vi: 'Giao diện công cụ' },
+  tool_interface_preview: { en: 'Interface preview', vi: 'Xem trước giao diện' },
+  tool_interface_preview_note: {
+    en: 'This is the actual tool interface running against a bundled sample SRS. Real .docx parsing and Excel generation run on the Flask backend below — this preview makes no backend calls and generates no files.',
+    vi: 'Đây là giao diện thật của công cụ, chạy trên một SRS mẫu đi kèm. Việc đọc file .docx thật và sinh Excel chạy trên backend Flask bên dưới — bản xem trước này không gọi backend và không tạo file.',
+  },
   tool_iframe_title: { en: 'Embedded tool interface', vi: 'Giao diện công cụ được nhúng' },
   tool_open_new_tab: { en: 'Open in a new tab', vi: 'Mở trong tab mới' },
   tool_demo_note_title: { en: 'About this demo build', vi: 'Về bản demo này' },

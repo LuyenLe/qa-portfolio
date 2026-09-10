@@ -10,14 +10,19 @@
  *  - Tools 01 & 02 have advanced features that need a local Python helper the
  *    visitor will not have → the hosted version is a partial demo; the core
  *    client-side feature still works and both degrade gracefully.
- *  - Tool 06 (SRS → Testcase) requires a Flask backend (webapp.py :5055) and
- *    CANNOT run on GitHub Pages. It renders an explicit "Backend required" state,
- *    never a fake/broken UI.
+ *  - Tool 06 (SRS → Testcase) requires a Flask backend (webapp.py :5055) for the
+ *    real .docx parsing and .xlsx generation, so it CANNOT execute on GitHub
+ *    Pages. It still ships its actual interface as a static preview
+ *    (public/tools/srs-to-testcase/index.html — the real web/ frontend with the
+ *    API calls swapped for a bundled sample SRS). The tool detail page shows
+ *    that interface first, then a clearly secondary "backend required" notice.
+ *    No fake API calls, no fake generated files.
  *
  * `hosting` values:
  *   "static-html"    → fully client-side, embedded as-is
  *   "static-partial" → client-side HTML, some features need a local helper
- *   "backend"        → requires a running server; not hostable on GitHub Pages
+ *   "backend"        → real execution needs a running server; the embedded
+ *                      artifact (if any) is a non-executing interface preview
  *
  * `embedPath` is relative (no leading slash). Resolve it against the Vite base
  * with `getToolEmbedUrl(id)` so it keeps working when the deploy task sets
@@ -68,7 +73,11 @@ export const toolIntegration = {
   "srs-to-testcase": {
     hosting: "backend",
     sourcePath: "tools/06_Srs_To_Testcase/webapp.py",
-    embedPath: null,
+    // Non-executing interface preview: the real web/ frontend with the Flask API
+    // calls replaced by a bundled sample SRS. Full parsing / Excel generation
+    // still require the backend (see backendContract).
+    embedPath: "tools/srs-to-testcase/index.html",
+    previewOnly: true,
     integrated: false,
     backendContract: {
       framework: "Flask",
@@ -82,8 +91,8 @@ export const toolIntegration = {
         "POST /api/srs/:id/generate",
       ],
       note: {
-        en: "This tool needs its Flask backend running (webapp.py on port 5055). It cannot run on GitHub Pages, which is static. Document parsing and Excel generation are deterministic Python — no LLM API call — and the \"AI-assisted\" step is a human reviewing UI screenshots against the generated fields.",
-        vi: "Công cụ này cần backend Flask đang chạy (webapp.py ở cổng 5055). Nó không chạy được trên GitHub Pages vì đó là trang tĩnh. Việc đọc tài liệu và sinh Excel là Python xác định — không gọi API LLM — và bước \"AI hỗ trợ\" là con người đối chiếu ảnh chụp UI với các field đã sinh.",
+        en: "The interface above is a preview running on a bundled sample SRS. Real use needs the Flask backend (webapp.py on port 5055): GitHub Pages is static hosting and cannot parse an uploaded .docx, extract its embedded screenshots, or build the .xlsx testcase. Document parsing and Excel generation are deterministic Python — no LLM API call — and the \"AI-assisted\" step is a human reviewing UI screenshots against the generated fields.",
+        vi: "Giao diện phía trên là bản xem trước chạy trên một SRS mẫu đi kèm. Để dùng thật cần backend Flask (webapp.py ở cổng 5055): GitHub Pages là hosting tĩnh nên không thể đọc file .docx tải lên, trích ảnh chụp màn hình nhúng trong đó, hay tạo file testcase .xlsx. Việc đọc tài liệu và sinh Excel là Python xác định — không gọi API LLM — và bước \"AI hỗ trợ\" là con người đối chiếu ảnh chụp UI với các field đã sinh.",
       },
     },
   },

@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SRS → Testcase v1.0 — Interface preview</title>
+<!--
+  STATIC INTERFACE PREVIEW for GitHub Pages.
+
+  This is the real Tool 06 frontend (markup + styles copied from
+  tools/06_Srs_To_Testcase/web/index.html + web/style.css) with a demo
+  controller replacing the Flask API calls in web/app.js.
+
+  Why: GitHub Pages is static hosting and cannot run webapp.py (Flask).
+  The Python business logic (extract_srs / gen_testcase / write_xlsx) is
+  NOT reimplemented here. Instead the workflow is shown end to end against
+  a bundled sample SRS so a recruiter can see how the tool works.
+
+  What is real here:
+    - the actual 4-step layout, panels, feature list, flag badges,
+      screenshot column, field-override table with editable type/label,
+      tab switching, selection <-> generate enable logic.
+  What is disabled (needs the backend):
+    - uploading a real .docx, extracting embedded screenshots,
+      generating / downloading the .xlsx testcase file.
+-->
+<style>
+:root {
+  --bg: #f5f6f8;
+  --card-bg: #ffffff;
+  --border: #e2e5ea;
+  --text: #1c2230;
+  --text-muted: #667085;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --accent-bg: #eef2ff;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.topbar {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  color: white;
+  padding: 28px 24px;
+}
+.topbar-inner { max-width: 980px; margin: 0 auto; }
+.topbar h1 { margin: 0 0 4px; font-size: 22px; }
+.topbar p { margin: 0; opacity: 0.85; font-size: 14px; }
+
+/* ---- demo banner (not part of the original tool) ---------------------- */
+.demo-banner {
+  max-width: 980px;
+  margin: 16px auto 0;
+  padding: 12px 16px;
+  border: 1px solid #fcd7a1;
+  border-left: 3px solid #d97706;
+  background: #fff7ed;
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.5;
+  color: #7c2d12;
+}
+.demo-banner strong { color: #9a3412; }
+
+.app {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+}
+.card.is-disabled {
+  opacity: .55;
+  pointer-events: none;
+  user-select: none;
+}
+.card h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card h3 { font-size: 14px; margin: 0 0 10px; color: var(--text); }
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hint { color: var(--text-muted); font-size: 13px; margin: 4px 0 12px; }
+.error { color: var(--danger); font-size: 13px; }
+
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  text-align: center;
+}
+.dropzone-hint { margin: 0; color: var(--text-muted); font-size: 14px; }
+.filename { margin: 8px 0 0; font-weight: 600; font-size: 14px; }
+.sample-tag {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--primary);
+}
+
+.link-btn {
+  background: none; border: none; color: var(--primary);
+  font: inherit; cursor: pointer; text-decoration: underline; padding: 0;
+}
+
+.feature-list { display: flex; flex-direction: column; gap: 8px; }
+.feature-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color .15s, background .15s;
+}
+.feature-item input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; }
+.feature-item .feature-name { cursor: pointer; }
+.feature-item .feature-name:hover { color: var(--primary); text-decoration: underline; }
+.feature-item.focused { border-color: var(--primary); background: var(--accent-bg); font-weight: 600; }
+.feature-item.feature-all {
+  background: #f6f7f9; border-style: dashed; font-weight: 600; margin-bottom: 2px;
+}
+
+.badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.badge {
+  font-size: 12px; padding: 4px 10px; border-radius: 999px;
+  background: var(--accent-bg); color: var(--primary); font-weight: 600;
+}
+.badge.off { background: #f1f2f4; color: var(--text-muted); }
+
+.workspace-grid { display: grid; grid-template-columns: 260px 1fr; gap: 20px; }
+@media (max-width: 720px) { .workspace-grid { grid-template-columns: 1fr; } }
+.workspace-col-wide { min-width: 0; }
+
+.screenshot-list { display: flex; flex-direction: column; gap: 10px; }
+.shot-placeholder {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 18px 14px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: #fafbfc;
+}
+.upload-shot { margin-top: 10px; }
+
+.tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.tab-btn {
+  border: 1px solid var(--border); background: white; border-radius: 6px;
+  padding: 6px 12px; font-size: 13px; cursor: pointer; color: var(--text-muted);
+}
+.tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.tab-btn:disabled, .link-btn:disabled { cursor: not-allowed; opacity: .6; }
+
+table.field-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.field-table th, table.field-table td {
+  border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: left; vertical-align: top;
+}
+table.field-table th { color: var(--text-muted); font-weight: 600; font-size: 12px; }
+table.field-table td.orig-name { font-weight: 600; }
+table.field-table td.orig-type { color: var(--text-muted); font-size: 12px; }
+table.field-table select, table.field-table input[type=text] {
+  width: 100%; padding: 5px 6px; border: 1px solid var(--border); border-radius: 6px; font: inherit; font-size: 12.5px;
+}
+.req-badge { display: inline-block; font-size: 10px; background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 999px; margin-left: 4px; }
+
+.primary-btn {
+  background: var(--primary); color: white; border: none; border-radius: 8px;
+  padding: 12px 22px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.primary-btn:hover { background: var(--primary-hover); }
+.primary-btn:disabled { background: #c7ccd6; cursor: not-allowed; }
+
+.backend-inline {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid #d97706;
+  border-radius: 8px;
+  background: #fff7ed;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #7c2d12;
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <h1>SRS → Testcase <span style="font-weight:400;opacity:.8;font-size:15px">v1.0</span></h1>
+    <p id="subtitle">Sinh testcase Excel từ file SRS, đối chiếu &amp; hiệu chỉnh theo ảnh chụp màn hình thật</p>
+  </div>
+</header>
+
+<div class="demo-banner" id="demoBanner">
+  <strong>Interface preview.</strong> This is the real Tool 06 interface running against a bundled sample SRS.
+  Parsing a real <code>.docx</code> and generating the Excel testcase run on the tool’s Python/Flask backend
+  (<code>webapp.py</code>, port 5055), which GitHub Pages — static hosting — cannot run. The workflow below is
+  fully navigable; steps that need the backend are marked.
+</div>
+
+<main class="app">
+
+  <!-- component: UploadPanel -->
+  <section id="panel-upload" class="card">
+    <h2><span class="step">1</span> <span data-i18n="step1">Chọn file SRS (.docx)</span></h2>
+    <div id="dropzone" class="dropzone">
+      <p class="dropzone-hint">
+        <span data-i18n="dropHint">Kéo thả file vào đây, hoặc</span>
+        <button id="browseBtn" class="link-btn" type="button" data-i18n="chooseFile">chọn file</button>
+      </p>
+      <p id="fileName" class="filename">SRS_danh_muc_dung_chung.docx</p>
+      <span class="sample-tag" data-i18n="sampleTag">Sample SRS bundled with this preview</span>
+    </div>
+    <p id="uploadNote" class="backend-inline" hidden></p>
+  </section>
+
+  <!-- component: FeatureList -->
+  <section id="panel-features" class="card">
+    <h2><span class="step">2</span> <span data-i18n="step2">Chọn feature cần sinh testcase</span></h2>
+    <p class="hint" data-i18n="step2hint">Tích chọn 1 hoặc nhiều feature để sinh gộp vào 1 file (mỗi feature 1 sheet riêng). Bấm vào tên feature để xem ảnh &amp; hiệu chỉnh field ở bước 3.</p>
+    <div id="featureList" class="feature-list"></div>
+  </section>
+
+  <!-- component: FeatureWorkspace -->
+  <section id="panel-workspace" class="card">
+    <h2><span class="step">3</span> <span data-i18n="step3">Đối chiếu ảnh chụp màn hình &amp; hiệu chỉnh field</span></h2>
+
+    <div id="flagBadges" class="badges"></div>
+
+    <div class="workspace-grid">
+      <div class="workspace-col">
+        <h3 data-i18n="screenshots">Ảnh chụp màn hình</h3>
+        <div id="screenshotList" class="screenshot-list"></div>
+        <div class="upload-shot">
+          <button id="shotUploadBtn" class="link-btn" type="button" data-i18n="addImage">+ Thêm ảnh của bạn</button>
+        </div>
+      </div>
+
+      <div class="workspace-col workspace-col-wide">
+        <h3 data-i18n="fieldHead">Field — hiệu chỉnh nếu SRS khác UI thật</h3>
+        <div class="tabs">
+          <button class="tab-btn active" data-screen="list" data-i18n="tabList">Màn Danh sách</button>
+          <button class="tab-btn" data-screen="add" data-i18n="tabAdd">Màn Thêm mới</button>
+        </div>
+        <div id="fieldTableWrap"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- component: GenerateBar -->
+  <section id="panel-generate" class="card">
+    <h2><span class="step">4</span> <span data-i18n="step4">Sinh testcase</span></h2>
+    <button id="generateBtn" class="primary-btn" disabled data-i18n="generateBtn">Sinh &amp; tải file .xlsx</button>
+    <p id="generateStatus" class="hint"></p>
+    <p class="backend-inline" data-i18n="generateBackendNote">
+      Sinh &amp; tải file .xlsx cần backend Flask (<code>webapp.py</code>). Trong bản preview này nút được giữ nguyên
+      vị trí nhưng vô hiệu hoá — chạy backend cục bộ để tạo file testcase thật.
+    </p>
+  </section>
+
+</main>
+
+<script>
+// ============================================================================
+// srs2testcase — STATIC PREVIEW controller.
+// Mirrors the state + render structure of the real web/app.js, but every
+// `fetch("/api/...")` is replaced by reads from the bundled SAMPLE object.
+// No network calls are made. Execution-dependent actions are disabled with an
+// explicit note rather than firing a fake request.
+// ============================================================================
+
+var lang = (new URLSearchParams(location.search).get('lang') === 'en') ? 'en' : 'vi';
+
+var I18N = {
+  vi: {
+    subtitle: 'Sinh testcase Excel từ file SRS, đối chiếu & hiệu chỉnh theo ảnh chụp màn hình thật',
+    step1: 'Chọn file SRS (.docx)',
+    dropHint: 'Kéo thả file vào đây, hoặc',
+    chooseFile: 'chọn file',
+    sampleTag: 'SRS mẫu đi kèm bản preview này',
+    uploadNote: 'Đọc file .docx thật do backend Flask xử lý (webapp.py). Bản preview trên GitHub Pages dùng sẵn một SRS mẫu để minh hoạ quy trình.',
+    step2: 'Chọn feature cần sinh testcase',
+    step2hint: 'Tích chọn 1 hoặc nhiều feature để sinh gộp vào 1 file (mỗi feature 1 sheet riêng). Bấm vào tên feature để xem ảnh & hiệu chỉnh field ở bước 3.',
+    selectAll: 'Chọn tất cả',
+    features: 'feature',
+    step3: 'Đối chiếu ảnh chụp màn hình & hiệu chỉnh field',
+    screenshots: 'Ảnh chụp màn hình',
+    shotPlaceholder: 'Bản preview không trích ảnh nhúng trong SRS (bước này cần backend). Trên bản chạy thật, ảnh chụp màn hình nhúng trong file .docx hiện ở đây để đối chiếu với bảng field bên phải.',
+    addImage: '+ Thêm ảnh của bạn',
+    fieldHead: 'Field — hiệu chỉnh nếu SRS khác UI thật',
+    tabList: 'Màn Danh sách',
+    tabAdd: 'Màn Thêm mới',
+    thField: 'Field (theo SRS)',
+    thTypeSrs: 'Loại (SRS)',
+    thTypeReal: '→ Loại thực tế',
+    thLabelReal: '→ Nhãn thực tế',
+    reqBadge: 'bắt buộc',
+    noField: 'Không có field nào trong màn này.',
+    step4: 'Sinh testcase',
+    generateBtn: 'Sinh & tải file .xlsx',
+    genStatusReady: 'Đã chọn {n} feature — bản chạy thật sẽ gộp thành 1 file, mỗi feature 1 sheet.',
+    genStatusNone: 'Tích chọn ít nhất 1 feature ở bước 2.',
+    generateBackendNote: 'Sinh & tải file .xlsx cần backend Flask (webapp.py). Trong bản preview này nút được giữ nguyên vị trí nhưng vô hiệu hoá — chạy backend cục bộ để tạo file testcase thật.',
+    flag_bulk: 'Xóa/khôi phục hàng loạt',
+    flag_has_import: 'Nhập Excel',
+    flag_has_export: 'Xuất Excel',
+    flag_has_delete_toggle: 'Xóa/chuyển trạng thái',
+    fromSrs: 'Từ SRS',
+  },
+  en: {
+    subtitle: 'Generate an Excel testcase from an SRS file, then reconcile & refine fields against real UI screenshots',
+    step1: 'Choose SRS file (.docx)',
+    dropHint: 'Drag & drop a file here, or',
+    chooseFile: 'choose a file',
+    sampleTag: 'Sample SRS bundled with this preview',
+    uploadNote: 'Parsing a real .docx runs on the Flask backend (webapp.py). This GitHub Pages preview uses a bundled sample SRS to demonstrate the workflow.',
+    step2: 'Choose feature(s) to generate testcases for',
+    step2hint: 'Tick one or more features to generate into a single file (one sheet per feature). Click a feature name to view screenshots & refine its fields in step 3.',
+    selectAll: 'Select all',
+    features: 'features',
+    step3: 'Reconcile screenshots & refine fields',
+    screenshots: 'Screenshots',
+    shotPlaceholder: 'This preview does not extract images embedded in the SRS (that step needs the backend). In the real run, screenshots embedded in the .docx appear here to check against the field table on the right.',
+    addImage: '+ Add your own image',
+    fieldHead: 'Fields — override where the SRS differs from the real UI',
+    tabList: 'List screen',
+    tabAdd: 'Create screen',
+    thField: 'Field (per SRS)',
+    thTypeSrs: 'Type (SRS)',
+    thTypeReal: '→ Actual type',
+    thLabelReal: '→ Actual label',
+    reqBadge: 'required',
+    noField: 'No fields on this screen.',
+    step4: 'Generate testcase',
+    generateBtn: 'Generate & download .xlsx',
+    genStatusReady: '{n} feature(s) selected — the real run merges them into one file, one sheet per feature.',
+    genStatusNone: 'Tick at least one feature in step 2.',
+    generateBackendNote: 'Generating & downloading the .xlsx needs the Flask backend (webapp.py). In this preview the button stays in place but is disabled — run the backend locally to produce a real testcase file.',
+    flag_bulk: 'Bulk delete/restore',
+    flag_has_import: 'Excel import',
+    flag_has_export: 'Excel export',
+    flag_has_delete_toggle: 'Delete/toggle status',
+    fromSrs: 'From SRS',
+  },
+};
+var T = I18N[lang];
+
+// ---- bundled sample SRS (shape mirrors extract_srs.extract + gen_testcase.build) ----
+var SAMPLE = {
+  fileName: 'SRS_danh_muc_dung_chung.docx',
+  features: [
+    'Quản lý danh mục dùng chung',
+    'Quản lý người dùng',
+    'Quản lý nhóm quyền',
+    'Quản lý đơn vị',
+  ],
+  data: {
+    'Quản lý danh mục dùng chung': {
+      flags: { bulk: true, has_import: true, has_export: true, has_delete_toggle: true },
+      screens: {
+        list: [
+          { name: 'Mã danh mục', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Tên danh mục', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Ngoại ngữ', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Trạng thái', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Nhập Excel', type: 'button', type_raw: 'Button', required: false },
+          { name: 'Xuất Excel', type: 'button', type_raw: 'Button', required: false },
+          { name: 'Thao tác', type: 'button', type_raw: 'Button (Sửa / Xóa)', required: false },
+        ],
+        add: [
+          { name: 'Mã danh mục', type: 'textbox', type_raw: 'Textbox [20]', required: true },
+          { name: 'Tên danh mục', type: 'textbox', type_raw: 'Textbox [255]', required: true },
+          { name: 'Ngoại ngữ', type: 'dropdown', type_raw: 'Dropdown', required: false },
+          { name: 'Mô tả', type: 'textbox', type_raw: 'Textbox [500]', required: false },
+          { name: 'Trạng thái', type: 'dropdown', type_raw: 'Dropdown (Hoạt động / Không hoạt động)', required: false },
+          { name: 'Lưu', type: 'button', type_raw: 'Button', required: false },
+        ],
+      },
+    },
+    'Quản lý người dùng': {
+      flags: { bulk: false, has_import: true, has_export: true, has_delete_toggle: true },
+      screens: {
+        list: [
+          { name: 'Tên đăng nhập', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Họ và tên', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Email', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Trạng thái', type: 'label', type_raw: 'Label column', required: false },
+        ],
+        add: [
+          { name: 'Tên đăng nhập', type: 'textbox', type_raw: 'Textbox [50]', required: true },
+          { name: 'Họ và tên', type: 'textbox', type_raw: 'Textbox [100]', required: true },
+          { name: 'Email', type: 'textbox', type_raw: 'Textbox [255]', required: true },
+          { name: 'Số điện thoại', type: 'number', type_raw: 'Number [11]', required: false },
+          { name: 'Nhóm quyền', type: 'dropdown', type_raw: 'Dropdown', required: true },
+        ],
+      },
+    },
+    'Quản lý nhóm quyền': {
+      flags: { bulk: false, has_import: false, has_export: true, has_delete_toggle: true },
+      screens: {
+        list: [
+          { name: 'Mã nhóm', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Tên nhóm quyền', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Trạng thái', type: 'label', type_raw: 'Label column', required: false },
+        ],
+        add: [
+          { name: 'Mã nhóm', type: 'textbox', type_raw: 'Textbox [20]', required: true },
+          { name: 'Tên nhóm quyền', type: 'textbox', type_raw: 'Textbox [150]', required: true },
+          { name: 'Chức năng', type: 'checkbox', type_raw: 'Checkbox list', required: false },
+        ],
+      },
+    },
+    'Quản lý đơn vị': {
+      flags: { bulk: true, has_import: true, has_export: true, has_delete_toggle: true },
+      screens: {
+        list: [
+          { name: 'Mã đơn vị', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Tên đơn vị', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Đơn vị cha', type: 'label', type_raw: 'Label column', required: false },
+          { name: 'Trạng thái', type: 'label', type_raw: 'Label column', required: false },
+        ],
+        add: [
+          { name: 'Mã đơn vị', type: 'textbox', type_raw: 'Textbox [20]', required: true },
+          { name: 'Tên đơn vị', type: 'textbox', type_raw: 'Textbox [255]', required: true },
+          { name: 'Đơn vị cha', type: 'dropdown', type_raw: 'Dropdown (tree)', required: false },
+          { name: 'Thứ tự hiển thị', type: 'number', type_raw: 'Number', required: false },
+        ],
+      },
+    },
+  },
+};
+
+var TYPE_OPTIONS = ["textbox", "dropdown", "number", "checkbox", "button", "label"];
+
+var state = {
+  features: SAMPLE.features.slice(),
+  selectedFeatures: new Set([SAMPLE.features[0]]),
+  focusedFeature: SAMPLE.features[0],
+  activeTab: 'list',
+  overridesByFeature: {},
+};
+
+function $(id) { return document.getElementById(id); }
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+// ---- i18n: swap static text nodes ----
+function applyI18n() {
+  document.documentElement.lang = lang;
+  $('subtitle').textContent = T.subtitle;
+  $('fileName').textContent = SAMPLE.fileName;
+  document.querySelectorAll('[data-i18n]').forEach(function (el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[key] != null) el.innerHTML = T[key];
+  });
+  if (lang === 'en') {
+    $('demoBanner').innerHTML =
+      '<strong>Interface preview.</strong> This is the real Tool 06 interface running against a bundled sample SRS. ' +
+      'Parsing a real <code>.docx</code> and generating the Excel testcase run on the tool’s Python/Flask backend ' +
+      '(<code>webapp.py</code>, port 5055), which GitHub Pages — static hosting — cannot run. The workflow below is ' +
+      'fully navigable; steps that need the backend are marked.';
+  } else {
+    $('demoBanner').innerHTML =
+      '<strong>Xem trước giao diện.</strong> Đây là giao diện Tool 06 thật, chạy trên một SRS mẫu đi kèm. ' +
+      'Đọc file <code>.docx</code> thật và sinh file testcase Excel chạy trên backend Python/Flask của công cụ ' +
+      '(<code>webapp.py</code>, cổng 5055) — GitHub Pages là hosting tĩnh nên không chạy được. Quy trình bên dưới ' +
+      'vẫn xem được đầy đủ; các bước cần backend được đánh dấu.';
+  }
+}
+
+// ---- UploadPanel: no real upload ----
+function initUploadPanel() {
+  var browseBtn = $('browseBtn');
+  var dz = $('dropzone');
+  function showNote() {
+    var el = $('uploadNote');
+    el.textContent = T.uploadNote;
+    el.hidden = false;
+  }
+  browseBtn.addEventListener('click', showNote);
+  ['dragenter', 'dragover', 'drop'].forEach(function (evt) {
+    dz.addEventListener(evt, function (e) { e.preventDefault(); });
+  });
+  dz.addEventListener('drop', showNote);
+}
+
+// ---- FeatureList ----
+function renderFeatureList() {
+  var el = $('featureList');
+  el.innerHTML = '';
+
+  var allChecked = state.features.every(function (f) { return state.selectedFeatures.has(f); });
+  var allBar = document.createElement('div');
+  allBar.className = 'feature-item feature-all';
+  allBar.innerHTML =
+    '<input type="checkbox" id="selectAllFeatures" ' + (allChecked ? 'checked' : '') + '>' +
+    '<label for="selectAllFeatures">' + T.selectAll + ' (' + state.features.length + ' ' + T.features + ')</label>';
+  allBar.querySelector('input').addEventListener('change', function (e) {
+    if (e.target.checked) state.features.forEach(function (f) { state.selectedFeatures.add(f); });
+    else state.selectedFeatures.clear();
+    renderFeatureList();
+    onSelectionChanged();
+  });
+  el.appendChild(allBar);
+
+  state.features.forEach(function (name, i) {
+    var checked = state.selectedFeatures.has(name);
+    var item = document.createElement('div');
+    item.className = 'feature-item' + (name === state.focusedFeature ? ' focused' : '');
+    item.innerHTML =
+      '<input type="checkbox" id="feat-cb-' + i + '" ' + (checked ? 'checked' : '') + '>' +
+      '<span class="feature-name">' + escapeHtml(name) + '</span>';
+    item.querySelector('input').addEventListener('change', function (e) {
+      if (e.target.checked) state.selectedFeatures.add(name);
+      else state.selectedFeatures.delete(name);
+      onSelectionChanged();
+    });
+    item.querySelector('.feature-name').addEventListener('click', function () { handleFocusFeature(name); });
+    el.appendChild(item);
+  });
+}
+
+function onSelectionChanged() {
+  var n = state.selectedFeatures.size;
+  $('generateStatus').textContent = n > 0
+    ? T.genStatusReady.replace('{n}', n)
+    : T.genStatusNone;
+}
+
+function handleFocusFeature(name) {
+  state.focusedFeature = name;
+  state.activeTab = 'list';
+  document.querySelectorAll('.tab-btn').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.screen === 'list');
+  });
+  renderFeatureList();
+  renderFlagBadges();
+  renderScreenshots();
+  renderFieldTable();
+}
+
+// ---- FlagBadges ----
+function renderFlagBadges() {
+  var el = $('flagBadges');
+  var f = SAMPLE.data[state.focusedFeature].flags;
+  var keys = ['bulk', 'has_import', 'has_export', 'has_delete_toggle'];
+  el.innerHTML = keys.map(function (k) {
+    return '<span class="badge ' + (f[k] ? '' : 'off') + '">' + (f[k] ? '✓' : '✗') + ' ' + T['flag_' + k] + '</span>';
+  }).join('');
+}
+
+// ---- ScreenshotPreview (no real images on static hosting) ----
+function renderScreenshots() {
+  $('screenshotList').innerHTML = '<div class="shot-placeholder">' + T.shotPlaceholder + '</div>';
+}
+
+// ---- FieldOverrideTable ----
+function initTabs() {
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      state.activeTab = btn.dataset.screen;
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+      renderFieldTable();
+    });
+  });
+}
+
+function currentOverrides() {
+  if (!state.overridesByFeature[state.focusedFeature]) state.overridesByFeature[state.focusedFeature] = {};
+  return state.overridesByFeature[state.focusedFeature];
+}
+
+function renderFieldTable() {
+  var wrap = $('fieldTableWrap');
+  var fields = SAMPLE.data[state.focusedFeature].screens[state.activeTab] || [];
+  if (!fields.length) {
+    wrap.innerHTML = '<p class="hint">' + T.noField + '</p>';
+    return;
+  }
+  var overrides = currentOverrides();
+  var rows = fields.map(function (f) {
+    var key = state.activeTab + '::' + f.name;
+    var ov = overrides[key] || {};
+    var opts = TYPE_OPTIONS.map(function (t) {
+      return '<option value="' + t + '" ' + ((ov.type || f.type) === t ? 'selected' : '') + '>' + t + '</option>';
+    }).join('');
+    return '<tr data-key="' + escapeHtml(key) + '" data-orig="' + escapeHtml(f.name) + '">' +
+      '<td class="orig-name">' + escapeHtml(f.name) + (f.required ? '<span class="req-badge">' + T.reqBadge + '</span>' : '') + '</td>' +
+      '<td class="orig-type">' + escapeHtml(f.type_raw || f.type) + '</td>' +
+      '<td><select class="ov-type">' + opts + '</select></td>' +
+      '<td><input class="ov-label" type="text" value="' + escapeHtml(ov.label != null ? ov.label : f.name) + '"></td>' +
+      '</tr>';
+  }).join('');
+
+  wrap.innerHTML =
+    '<table class="field-table"><thead><tr>' +
+    '<th>' + T.thField + '</th><th>' + T.thTypeSrs + '</th><th>' + T.thTypeReal + '</th><th>' + T.thLabelReal + '</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+  wrap.querySelectorAll('tbody tr').forEach(function (tr) {
+    var key = tr.dataset.key;
+    var origName = tr.dataset.orig;
+    var typeSel = tr.querySelector('.ov-type');
+    var labelInput = tr.querySelector('.ov-label');
+    var sync = function () {
+      currentOverrides()[key] = { screen: state.activeTab, name: origName, type: typeSel.value, label: labelInput.value };
+    };
+    typeSel.addEventListener('change', sync);
+    labelInput.addEventListener('input', sync);
+  });
+}
+
+// ---- GenerateBar: disabled, backend-only ----
+function initGenerateBar() {
+  // button stays visible but disabled; the inline note explains why.
+  $('generateBtn').disabled = true;
+}
+
+function initAddImage() {
+  $('shotUploadBtn').addEventListener('click', function () {
+    var el = $('uploadNote');
+    el.textContent = T.uploadNote;
+    el.hidden = false;
+    $('panel-upload').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+applyI18n();
+initUploadPanel();
+initTabs();
+initGenerateBar();
+initAddImage();
+renderFeatureList();
+renderFlagBadges();
+renderScreenshots();
+renderFieldTable();
+onSelectionChanged();
+</script>
+</body>
+</html>
