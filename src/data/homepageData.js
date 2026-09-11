@@ -198,13 +198,10 @@ export const homepageData = {
         "Bootstrap",
         "JavaScript",
         "React",
-        "GSAP",
         "Salesforce Commerce Cloud"
       ],
       "Tools": [
         "Jira",
-        "Azure DevOps",
-        "TestRail",
         "Figma",
         "Git"
       ]
@@ -241,13 +238,10 @@ export const homepageData = {
         "Bootstrap",
         "JavaScript",
         "React",
-        "GSAP",
         "Salesforce Commerce Cloud"
       ],
       "Tools": [
         "Jira",
-        "Azure DevOps",
-        "TestRail",
         "Figma",
         "Git"
       ]

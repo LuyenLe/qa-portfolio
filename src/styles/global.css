@@ -162,6 +162,11 @@ img {
 .app-main {
   flex: 1 0 auto;
   padding-block: var(--space-8);
+  /* Lets a full-bleed section (the Home hero) use `margin-inline: calc(50% -
+     50vw)` without the viewport-scrollbar delta introducing horizontal scroll.
+     `clip` (not `hidden`) creates no scroll container, so the sticky header and
+     in-page anchor scrolling are unaffected. */
+  overflow-x: clip;
 }
 
 .app-footer {

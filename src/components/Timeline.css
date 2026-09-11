@@ -1,4 +1,6 @@
-/* Timeline — compact vertical career timeline. Plain CSS. */
+/* Timeline — compact vertical career timeline. Plain CSS.
+   The entries are not cards: a single rail carries dots, and each entry is plain
+   text. Only the current role gets a soft accent tint so it stays prominent. */
 
 .timeline {
   list-style: none;
@@ -10,9 +12,8 @@
   position: relative;
   display: grid;
   grid-template-columns: 7.5rem 1fr;
-  gap: var(--space-4);
-  padding-left: var(--space-5);
-  padding-bottom: var(--space-5);
+  gap: var(--space-2) var(--space-5);
+  padding: 0 0 var(--space-6) var(--space-5);
   border-left: 2px solid var(--color-border);
 }
 
@@ -23,11 +24,11 @@
 .timeline__dot {
   position: absolute;
   left: -7px;
-  top: 4px;
+  top: 6px;
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--color-surface);
+  background: var(--color-bg);
   border: 2px solid var(--color-text-muted);
 }
 
@@ -43,39 +44,34 @@
 
 .timeline__period {
   margin: 0;
-  padding-top: 1px;
+  padding-top: 3px;
   font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-weight: 700;
+  color: var(--color-navy);
 }
 
 .timeline__card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  padding: var(--space-4);
+  padding: 0 0 0 0;
 }
 
 .timeline__item--current .timeline__card {
-  border-color: var(--color-accent);
+  padding: var(--space-4) var(--space-4);
+  margin-top: -6px;
   background: var(--color-accent-soft);
+  border-radius: var(--radius-md);
 }
 
 .timeline__role {
   margin: 0 0 var(--space-1);
   font-size: var(--text-base);
   font-weight: 700;
+  color: var(--color-navy);
 }
 
 .timeline__company {
   margin: 0 0 var(--space-2);
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--color-accent-hover);
-}
-
-.timeline__item--current .timeline__company {
   color: var(--color-accent-hover);
 }
 
@@ -88,6 +84,10 @@
 @media (max-width: 640px) {
   .timeline__item {
     grid-template-columns: 1fr;
-    gap: var(--space-2);
+    gap: var(--space-1);
+  }
+
+  .timeline__item--current .timeline__card {
+    margin-top: 0;
   }
 }

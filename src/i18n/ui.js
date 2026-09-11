@@ -146,12 +146,19 @@ export const ui = {
     vi: 'Chân dung Lê Thị Luyến, Manual QA Tester',
   },
 
-  // Home — graceful state for the Contact CTA whose real destination is not in
-  // the data. (The Download CV CTA now links to the real PDF in public/.)
-  contact_unavailable: {
-    en: 'Contact channels are not published here yet.',
-    vi: 'Kênh liên hệ chưa được công bố tại đây.',
+  // Home hero — closing mantra shown at the foot of the hero. A fixed brand
+  // tagline, identical in both languages (per the approved hero design).
+  hero_tagline: {
+    en: 'TEST · LEARN · IMPROVE · TOGETHER',
+    vi: 'TEST · LEARN · IMPROVE · TOGETHER',
   },
+
+  // Home — Contact section labels and CTAs. Email and phone come from the
+  // approved CV; the Download CV CTA links to the real PDF in public/.
+  contact_email_label: { en: 'Email', vi: 'Email' },
+  contact_phone_label: { en: 'Phone', vi: 'Điện thoại' },
+  contact_email_cta: { en: 'Email me', vi: 'Liên hệ qua Email' },
+  contact_cv_cta: { en: 'Download CV', vi: 'Tải CV' },
   graduated: { en: 'Graduated', vi: 'Tốt nghiệp' },
 
   // Generic states

@@ -161,20 +161,21 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
 }
 
+/* Deliberate metadata row: uppercase label stacked above its value, with
+   predictable spacing. Stacking (rather than an inline label) keeps every row
+   aligned the same way regardless of value length or language (EN/VI). */
 .tool-card__spec {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2px var(--space-2);
+  flex-direction: column;
+  gap: 2px;
 }
 
 .tool-card__spec dt {
-  flex: none;
-  min-width: 6.5rem;
   font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.03em;
